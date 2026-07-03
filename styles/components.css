@@ -1458,3 +1458,144 @@ select:disabled {
     min-height: 315px;
   }
 }
+
+/* CalStat 2.3 conflict-safe synchronization */
+.sync-pill.conflict {
+  border-color: rgba(240, 187, 69, 0.34);
+  background: rgba(240, 187, 69, 0.08);
+}
+
+.sync-pill.conflict .sync-dot {
+  background: var(--yellow);
+  box-shadow: 0 0 0 4px rgba(240, 187, 69, 0.14);
+}
+
+.goal-countdown-copy small:empty {
+  display: none;
+}
+
+.sync-conflict-card {
+  max-width: 560px;
+  text-align: center;
+}
+
+.sync-conflict-icon {
+  display: grid;
+  width: 66px;
+  height: 66px;
+  margin: 0 auto 15px;
+  place-items: center;
+  border: 1px solid rgba(var(--accent-2-rgb), 0.32);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(var(--accent-rgb), 0.2), rgba(var(--accent-2-rgb), 0.1));
+  color: var(--cyan);
+  font-size: 2rem;
+  font-weight: 850;
+  box-shadow: 0 0 35px rgba(var(--accent-2-rgb), 0.14);
+}
+
+.sync-conflict-card h3 {
+  margin-bottom: 9px;
+}
+
+.sync-conflict-copy {
+  margin-bottom: 17px;
+  color: var(--muted-strong);
+  line-height: 1.55;
+}
+
+.sync-copy-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+.sync-copy-grid > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.sync-copy-grid span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.sync-copy-grid strong {
+  color: var(--text);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.sync-choice-stack {
+  display: grid;
+  gap: 9px;
+  text-align: left;
+}
+
+.sync-choice-stack button {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  min-height: 64px;
+  padding: 12px 15px;
+}
+
+.sync-choice-stack button strong {
+  font-size: 0.92rem;
+}
+
+.sync-choice-stack button span {
+  color: color-mix(in srgb, currentColor 72%, var(--muted));
+  font-size: 0.72rem;
+  font-weight: 560;
+  line-height: 1.35;
+}
+
+.sync-warning {
+  margin: 13px 0 0;
+  color: var(--muted);
+  font-size: 0.71rem;
+  line-height: 1.45;
+}
+
+.body-chart-grid {
+  align-items: stretch;
+}
+
+.body-chart-grid .chart-card {
+  display: flex;
+  align-self: stretch;
+  flex-direction: column;
+}
+
+.body-chart-grid .chart-wrap {
+  flex: 1;
+  min-height: 326px;
+}
+
+.body-composition-wrap,
+.physique-map-wrap {
+  min-height: 326px;
+}
+
+@media (max-width: 680px) {
+  .sync-copy-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .body-chart-grid .chart-wrap,
+  .body-composition-wrap,
+  .physique-map-wrap {
+    min-height: 315px;
+  }
+}

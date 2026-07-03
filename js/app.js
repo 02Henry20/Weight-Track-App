@@ -22,7 +22,8 @@ import {
   saveWeight,
   setStoreErrorHandler,
   state,
-  subscribeState
+  subscribeState,
+  synchronizeUserData
 } from "./store.js";
 import {
   analyseBody,
@@ -44,7 +45,7 @@ import {
   redrawOnResize
 } from "./charts.js";
 
-const APP_VERSION = "2.2.0";
+const APP_VERSION = "2.3.0";
 
 const VIEW_LABELS = {
   overview: ["TODAY'S SIGNAL", "Overview"],
@@ -79,6 +80,7 @@ const elements = {
 let activeView = "overview";
 let currentCalorieMode = "daily";
 let confirmResolver = null;
+let syncChoiceResolver = null;
 let activeModalType = null;
 let confirmPreviousModal = null;
 let latestAnalyses = null;
@@ -127,8 +129,8 @@ function showToast(title, copy = "", type = "success") {
   window.setTimeout(() => toast.remove(), 4200);
 }
 
-function queueWrite(promise, title, offlineCopy = "Saved locally and queued for Firebase synchronization.") {
-  showToast(title, navigator.onLine ? offlineCopy : "Saved locally. It will synchronize when you are online.");
+function queueWrite(promise, title, onlineCopy = "Saved on this device and synchronizing with Firebase.") {
+  showToast(title, navigator.onLine ? onlineCopy : "Saved on this device. Review synchronization when you are online.");
   promise.catch(error => {
     showToast("Save failed", firebaseErrorMessage(error), "error");
   });
@@ -138,21 +140,26 @@ async function initializeAuthentication() {
   try {
     await initializeAuthPersistence();
     elements.bootStatus.classList.add("ready");
-    elements.bootText.textContent = "Firebase ready · offline cache enabled";
+    elements.bootText.textContent = "Device storage ready · conflict-safe sync";
   } catch (error) {
     elements.bootStatus.classList.add("error");
     elements.bootText.textContent = firebaseErrorMessage(error);
   }
 
-  onAuthStateChanged(auth, user => {
+  onAuthStateChanged(auth, async user => {
     if (user) {
       elements.authShell.hidden = true;
       elements.appShell.hidden = false;
       elements.userChip.textContent = user.email ?? user.uid;
       elements.settingsUserEmail.textContent = user.email ?? user.uid;
-      connectUserData(user);
       navigateTo("overview");
+      try {
+        await connectUserData(user, askSyncChoice);
+      } catch (error) {
+        showToast("Synchronization failed", firebaseErrorMessage(error), "error");
+      }
     } else {
+      if (syncChoiceResolver) resolveSyncChoice("cloud");
       disconnectUserData();
       elements.authShell.hidden = false;
       elements.appShell.hidden = true;
@@ -202,7 +209,7 @@ function openModal(type) {
 }
 
 function closeModal() {
-  if (confirmResolver) return;
+  if (confirmResolver || syncChoiceResolver) return;
   activeModalType = null;
   elements.modalBackdrop.hidden = true;
   document.querySelectorAll("[data-modal]").forEach(modal => {
@@ -289,6 +296,36 @@ function resolveConfirmation(value) {
   }
 
   resolver(value);
+}
+
+function askSyncChoice(summary) {
+  return new Promise(resolve => {
+    syncChoiceResolver = resolve;
+    activeModalType = "sync-conflict";
+    elements.modalBackdrop.hidden = false;
+    document.querySelectorAll("[data-modal]").forEach(modal => {
+      modal.hidden = modal.dataset.modal !== "sync-conflict";
+    });
+    setText("#sync-local-summary", `${summary.local.weights} weight · ${summary.local.body} body · ${summary.local.calories} calorie records`);
+    setText("#sync-cloud-summary", `${summary.cloud.weights} weight · ${summary.cloud.body} body · ${summary.cloud.calories} calorie records`);
+    setText("#sync-conflict-summary", summary.conflicts
+      ? `${summary.conflicts} same-date record${summary.conflicts === 1 ? "" : "s"} differ between this device and Firebase.`
+      : "The two copies contain different records or settings.");
+    document.body.style.overflow = "hidden";
+  });
+}
+
+function resolveSyncChoice(choice) {
+  if (!syncChoiceResolver) return;
+  const resolver = syncChoiceResolver;
+  syncChoiceResolver = null;
+  activeModalType = null;
+  document.querySelectorAll("[data-modal]").forEach(modal => {
+    modal.hidden = true;
+  });
+  elements.modalBackdrop.hidden = true;
+  document.body.style.overflow = "";
+  resolver(choice);
 }
 
 function stepInput(inputId, step) {
@@ -427,7 +464,7 @@ function submitGoals(event) {
   }
 
   queueWrite(saveGoals({ targetWeight, dailyDeficit, targetDate }), "Goals saved");
-  setFormMessage(message, "Goals saved locally and queued for synchronization.");
+  setFormMessage(message, navigator.onLine ? "Goals saved and synchronizing with Firebase." : "Goals saved on this device.");
 }
 
 function submitSettings(event) {
@@ -481,7 +518,7 @@ function submitSettings(event) {
   }
 
   queueWrite(saveSettings(settings), "Settings saved");
-  setFormMessage(message, "Settings saved locally and queued for synchronization.");
+  setFormMessage(message, navigator.onLine ? "Settings saved and synchronizing with Firebase." : "Settings saved on this device.");
 }
 
 function createHistoryRow({ title, subtitle, value, pending, collectionName, id }) {
@@ -541,24 +578,28 @@ function formatSigned(value, digits = 1, suffix = "") {
 
 function updateSyncStatus() {
   const pending = hasPendingWrites();
-  const cacheOnly = isUsingCacheOnly();
+  const sync = state.sync;
 
-  if (!navigator.onLine) {
+  if (!navigator.onLine || sync.status === "offline") {
     elements.syncPill.className = "sync-pill offline";
-    elements.syncLabel.textContent = pending ? "Offline · pending" : "Offline cache";
-    elements.syncDetail.textContent = pending ? "Will synchronize later" : "Local data available";
-  } else if (pending) {
+    elements.syncLabel.textContent = pending ? "Offline · pending" : "Device only";
+    elements.syncDetail.textContent = pending ? "Review sync when online" : "Saved on this device";
+  } else if (sync.status === "conflict") {
+    elements.syncPill.className = "sync-pill conflict";
+    elements.syncLabel.textContent = "Sync choice needed";
+    elements.syncDetail.textContent = "Cloud and device differ";
+  } else if (sync.status === "error") {
+    elements.syncPill.className = "sync-pill error";
+    elements.syncLabel.textContent = "Sync error";
+    elements.syncDetail.textContent = sync.detail;
+  } else if (pending || sync.status === "loading" || isUsingCacheOnly()) {
     elements.syncPill.className = "sync-pill";
-    elements.syncLabel.textContent = "Synchronizing";
-    elements.syncDetail.textContent = "Local changes pending";
-  } else if (cacheOnly) {
-    elements.syncPill.className = "sync-pill";
-    elements.syncLabel.textContent = "Connected";
-    elements.syncDetail.textContent = "Checking Firebase";
+    elements.syncLabel.textContent = pending ? "Changes pending" : "Comparing data";
+    elements.syncDetail.textContent = sync.detail || "Checking Firebase";
   } else {
     elements.syncPill.className = "sync-pill synced";
     elements.syncLabel.textContent = "Synced";
-    elements.syncDetail.textContent = "Firebase up to date";
+    elements.syncDetail.textContent = sync.detail || "Device and Firebase aligned";
   }
 }
 
@@ -623,7 +664,7 @@ function renderOverview(analyses) {
     const daysLeft = Math.max(1, Math.ceil(goals.etaDays));
     goalDaysValue.textContent = `${daysLeft.toLocaleString()} day${daysLeft === 1 ? "" : "s"}`;
     goalDaysLabel.textContent = "estimated until target";
-    goalCountdownMeta.textContent = `Projected for ${formatLongDate(goals.etaDate)}.`;
+    goalCountdownMeta.textContent = "";
   } else {
     goalDaysValue.textContent = "No ETA";
     goalDaysLabel.textContent = `${Math.abs(goalDifference).toFixed(1)} kg left · recent trend is not aligned`;
@@ -973,7 +1014,7 @@ function bindEvents() {
   document.querySelectorAll("[data-close-modal]").forEach(button => button.addEventListener("click", closeModal));
 
   elements.modalBackdrop.addEventListener("click", event => {
-    if (event.target === elements.modalBackdrop && !confirmResolver) closeModal();
+    if (event.target === elements.modalBackdrop && !confirmResolver && !syncChoiceResolver) closeModal();
   });
 
   document.querySelectorAll("[data-step-target]").forEach(button => {
@@ -1029,11 +1070,31 @@ function bindEvents() {
 
   document.querySelector("#confirm-cancel").addEventListener("click", () => resolveConfirmation(false));
   document.querySelector("#confirm-accept").addEventListener("click", () => resolveConfirmation(true));
+  document.querySelector("#sync-choice-merge").addEventListener("click", () => resolveSyncChoice("merge"));
+  document.querySelector("#sync-choice-cloud").addEventListener("click", () => resolveSyncChoice("cloud"));
+  document.querySelector("#sync-choice-local").addEventListener("click", () => resolveSyncChoice("local"));
+
+  document.querySelector("#sync-now-button")?.addEventListener("click", async () => {
+    try {
+      await synchronizeUserData(askSyncChoice, { forcePrompt: true });
+      showToast("Synchronization complete", "This device and Firebase are aligned.");
+    } catch (error) {
+      showToast("Synchronization failed", firebaseErrorMessage(error), "error");
+    }
+  });
 
   document.querySelector("#export-data-button").addEventListener("click", exportBackup);
   document.querySelector("#import-data-input").addEventListener("change", event => importBackup(event.target.files?.[0]));
 
-  window.addEventListener("online", scheduleRender);
+  window.addEventListener("online", async () => {
+    scheduleRender();
+    if (!state.user) return;
+    try {
+      await synchronizeUserData(askSyncChoice, { forcePrompt: true });
+    } catch (error) {
+      showToast("Synchronization failed", firebaseErrorMessage(error), "error");
+    }
+  });
   window.addEventListener("offline", scheduleRender);
   redrawOnResize(renderActiveCharts);
 }
