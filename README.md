@@ -1,18 +1,21 @@
-# Weight Tracker — Version 1
+# Weight Tracker — Version 2
 
-This is the first deployable version for the persistence test.
+Version 2 uses exactly the same IndexedDB database as Version 1:
 
-## Deploy to GitHub Pages
+- Database: `weight-tracker-db`
+- Object store: `weights`
+- PWA ID and start URL: unchanged
 
-1. Create a GitHub repository, for example `weight-tracker`.
-2. Put the **contents** of this folder in the repository root.
-3. Commit and push them to the `main` branch.
-4. In GitHub: **Settings → Pages**.
-5. Under **Build and deployment**, choose **Deploy from a branch**.
-6. Select branch `main`, folder `/ (root)`, and save.
-7. Open the published URL in Chrome on your Pixel.
-8. Use Chrome's menu: **Add to home screen → Install**.
-9. Open the installed app and save several weight entries.
+## Apply the update
 
-Do not deploy Version 2 at another URL. Version 2 must replace these files at the
-same repository path so it retains the same browser storage origin.
+1. Delete or overwrite the Version 1 source files in your local Git repository.
+2. Copy the **contents** of this Version 2 folder into the same repository root.
+3. Commit and push.
+4. Wait until GitHub Pages finishes deploying.
+5. Open the already-installed app on your Pixel while online.
+6. It should show an update banner. Tap **Update now**.
+7. The app reloads as Version 2.
+8. Your old entries should still appear, now with summary cards and a chart.
+
+Do not uninstall the app, clear Chrome site data, rename the repository, or move
+the deployment to a different URL during the test.

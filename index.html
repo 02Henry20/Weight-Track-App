@@ -20,8 +20,33 @@
         <p class="eyebrow">LOCAL WEIGHT LOG</p>
         <h1>Weight Tracker</h1>
       </div>
-      <span class="version">Version 1</span>
+      <span class="version version-new">Version 2</span>
     </header>
+
+    <section class="summary-grid" aria-label="Weight summary">
+      <article class="summary-card">
+        <span>Latest</span>
+        <strong id="latest-weight">—</strong>
+      </article>
+      <article class="summary-card">
+        <span>Average</span>
+        <strong id="average-weight">—</strong>
+      </article>
+      <article class="summary-card">
+        <span>Total change</span>
+        <strong id="total-change">—</strong>
+      </article>
+    </section>
+
+    <section class="card chart-card">
+      <div class="section-heading">
+        <h2>Progress</h2>
+        <span class="new-feature">New in V2</span>
+      </div>
+      <div id="chart-empty" class="empty-state">Add at least two entries to see a trend.</div>
+      <svg id="weight-chart" class="weight-chart" viewBox="0 0 600 220"
+           role="img" aria-label="Weight trend chart" hidden></svg>
+    </section>
 
     <section class="card">
       <form id="weight-form">
@@ -49,11 +74,11 @@
       <ol id="weight-list" class="weight-list"></ol>
     </section>
 
-    <p class="storage-note">Your entries are stored locally on this device using IndexedDB.</p>
+    <p class="storage-note">Version 2 reads the same local IndexedDB data created by Version 1.</p>
   </main>
 
   <aside id="update-banner" class="update-banner" hidden>
-    <span>A new app version is available.</span>
+    <span>Version 2 is ready.</span>
     <button id="update-button" type="button">Update now</button>
   </aside>
 
