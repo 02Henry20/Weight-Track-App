@@ -43,6 +43,8 @@ import {
   redrawOnResize
 } from "./charts.js";
 
+const APP_VERSION = "2.1.0";
+
 const VIEW_LABELS = {
   overview: ["TODAY'S SIGNAL", "Overview"],
   log: ["INPUT", "Log data"],
@@ -588,21 +590,26 @@ function renderOverview(analyses) {
   }
 
   const goalDifference = goals.difference;
-  const goalDistanceValue = document.querySelector("#goal-distance-value");
-  const goalDistanceLabel = document.querySelector("#goal-distance-label");
-  const goalDistanceFill = document.querySelector("#goal-distance-fill");
+  const goalDaysValue = document.querySelector("#goal-days-value");
+  const goalDaysLabel = document.querySelector("#goal-days-label");
+  const goalTimeEndLabel = document.querySelector("#goal-time-end-label");
   if (goalDifference == null) {
-    goalDistanceValue.textContent = "—";
-    goalDistanceLabel.textContent = "Set a target weight";
-    goalDistanceFill.style.width = "0%";
-  } else if (Math.abs(goalDifference) <= 0.05 || (goals.progress ?? 0) >= 0.999) {
-    goalDistanceValue.textContent = "Reached";
-    goalDistanceLabel.textContent = "Target achieved";
-    goalDistanceFill.style.width = "100%";
+    goalDaysValue.textContent = "—";
+    goalDaysLabel.textContent = "Set a target weight";
+    goalTimeEndLabel.textContent = "Target";
+  } else if (Math.abs(goalDifference) <= 0.05) {
+    goalDaysValue.textContent = "Reached";
+    goalDaysLabel.textContent = "Target achieved";
+    goalTimeEndLabel.textContent = "Now";
+  } else if (goals.etaDays != null && goals.etaDate) {
+    const daysLeft = Math.max(1, Math.ceil(goals.etaDays));
+    goalDaysValue.textContent = `${daysLeft.toLocaleString()} day${daysLeft === 1 ? "" : "s"}`;
+    goalDaysLabel.textContent = "estimated until target";
+    goalTimeEndLabel.textContent = "Projected target";
   } else {
-    goalDistanceValue.textContent = `${Math.abs(goalDifference).toFixed(1)} kg`;
-    goalDistanceLabel.textContent = goalDifference < 0 ? "left to lose" : "left to gain";
-    goalDistanceFill.style.width = `${Math.round((goals.progress ?? 0) * 100)}%`;
+    goalDaysValue.textContent = "No ETA";
+    goalDaysLabel.textContent = `${Math.abs(goalDifference).toFixed(1)} kg left · recent trend is not aligned`;
+    goalTimeEndLabel.textContent = "Target";
   }
   setText("#goal-target-weight", goals.targetWeight == null ? "—" : `${goals.targetWeight.toFixed(1)} kg`);
   setText("#goal-eta", goals.etaDate ? formatLongDate(goals.etaDate) : "Not enough trend");
@@ -657,9 +664,11 @@ function renderTrends(analyses) {
   phaseBadge.textContent = dietPhase.label;
   setText("#diet-phase-copy", dietPhase.description);
 
-  const trendConfidenceCard = document.querySelector("#trend-confidence-card");
+  const analysisQualityCard = document.querySelector("#analysis-quality-card");
+  const trendsGrid = analysisQualityCard.closest(".analytics-grid");
   const showTrendConfidence = state.settings.trendConfidenceView !== "off";
-  trendConfidenceCard.hidden = !showTrendConfidence;
+  analysisQualityCard.hidden = !showTrendConfidence;
+  trendsGrid.classList.toggle("quality-panel-hidden", !showTrendConfidence);
   if (showTrendConfidence) {
     const confidence = weight.trendConfidence;
     document.querySelector("#trend-sufficiency-fill").style.width = `${confidence.dataSufficiencyScore}%`;
@@ -682,13 +691,15 @@ function renderTrends(analyses) {
     setText("#maintenance-explanation", "Add at least several weight and calorie entries across the configured analysis window.");
   }
 
-  document.querySelector("#quality-meter-fill").style.width = `${maintenance.qualityScore}%`;
-  setText("#quality-score", `${maintenance.qualityScore}%`);
-  setText("#quality-copy", maintenance.qualityScore >= 75
-    ? "Good coverage. The estimate is still an approximation, but the recent data is internally consistent."
-    : maintenance.qualityScore >= 48
-      ? "Moderate coverage. More calorie days and consistent morning weights will improve confidence."
-      : "Low coverage. Add measurements across multiple weeks before relying on the maintenance estimate.");
+  if (showTrendConfidence) {
+    document.querySelector("#quality-meter-fill").style.width = `${maintenance.qualityScore}%`;
+    setText("#quality-score", `${maintenance.qualityScore}%`);
+    setText("#quality-copy", maintenance.qualityScore >= 75
+      ? "Good model coverage. Recent calorie and weight data are internally consistent."
+      : maintenance.qualityScore >= 48
+        ? "Moderate model coverage. More calorie days and consistent morning weights will improve it."
+        : "Low model coverage. Add measurements across multiple weeks before relying on the estimate.");
+  }
 }
 
 function statusToneForCategory(category, type) {
@@ -784,6 +795,7 @@ function renderSettings() {
   setText("#settings-weight-count", state.weights.length.toString());
   setText("#settings-body-count", state.bodyEntries.length.toString());
   setText("#settings-calorie-count", state.calorieEntries.length.toString());
+  setText("#settings-app-version", `CalStat ${APP_VERSION}`);
 }
 
 function calculateAnalyses() {

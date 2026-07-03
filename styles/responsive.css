@@ -25,6 +25,40 @@
     --topbar-height: 74px;
   }
 
+  body {
+    background:
+      radial-gradient(circle at 12% 2%, rgba(var(--accent-rgb), 0.24), transparent 25rem),
+      radial-gradient(circle at 96% 34%, rgba(var(--accent-2-rgb), 0.18), transparent 23rem),
+      radial-gradient(circle at 18% 88%, rgba(148, 117, 255, 0.13), transparent 24rem),
+      var(--bg);
+  }
+
+  body::after {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 80% 12%, rgba(var(--accent-2-rgb), 0.12), transparent 16rem),
+      radial-gradient(circle at 8% 58%, rgba(var(--accent-rgb), 0.14), transparent 18rem),
+      radial-gradient(circle at 72% 92%, rgba(var(--warm-rgb), 0.07), transparent 17rem);
+    content: "";
+    filter: blur(4px);
+  }
+
+  .app-shell,
+  .auth-shell {
+    position: relative;
+    z-index: 1;
+  }
+
+  :root:not([data-theme="light"]) .glass-panel {
+    border-color: rgba(var(--accent-rgb), 0.2);
+    background:
+      linear-gradient(145deg, rgba(var(--accent-rgb), 0.085), rgba(9, 20, 34, 0.92) 42%, rgba(var(--accent-2-rgb), 0.045));
+    box-shadow: 0 18px 55px rgba(var(--accent-rgb), 0.075), var(--shadow);
+  }
+
   .auth-shell {
     grid-template-columns: 1fr;
     max-width: 620px;
@@ -81,8 +115,9 @@
   }
 
   .mobile-nav button.active {
-    background: rgba(47, 135, 255, 0.14);
-    color: #dceaff;
+    background: linear-gradient(145deg, rgba(var(--accent-rgb), 0.26), rgba(var(--accent-2-rgb), 0.1));
+    color: #eef7ff;
+    box-shadow: inset 0 0 18px rgba(var(--accent-2-rgb), 0.09), 0 7px 18px rgba(var(--accent-rgb), 0.14);
   }
 
   .mobile-nav button span {
@@ -110,8 +145,7 @@
   .goal-card,
   .quick-actions,
   .metric-stack,
-  .data-quality-card,
-  .trend-confidence-card {
+  .analysis-quality-card {
     grid-column: 1 !important;
   }
 
@@ -145,6 +179,13 @@
 
   .topbar {
     padding: 12px 14px;
+    border-bottom-color: rgba(var(--accent-rgb), 0.22);
+    background: linear-gradient(180deg, rgba(5, 13, 23, 0.94), rgba(7, 17, 30, 0.82));
+    box-shadow: 0 10px 34px rgba(var(--accent-rgb), 0.08);
+  }
+
+  :root[data-theme="light"] .topbar {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 249, 255, 0.88));
   }
 
   .topbar .eyebrow,
@@ -282,6 +323,33 @@
     bottom: calc(84px + env(safe-area-inset-bottom));
     left: 12px;
     width: auto;
+  }
+}
+
+
+@media (max-width: 900px) {
+  .hero-card,
+  .metric-card.accent,
+  .goal-card,
+  .analysis-quality-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-card::after,
+  .metric-card.accent::after,
+  .goal-card::after,
+  .analysis-quality-card::after {
+    position: absolute;
+    top: -42px;
+    right: -36px;
+    width: 118px;
+    height: 118px;
+    border-radius: 999px;
+    background: rgba(var(--accent-2-rgb), 0.11);
+    content: "";
+    filter: blur(20px);
+    pointer-events: none;
   }
 }
 

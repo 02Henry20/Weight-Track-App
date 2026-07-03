@@ -304,3 +304,9 @@ canvas {
     transform: translate3d(1.4rem, 1.8rem, 0) rotate(8deg) scale(1.05);
   }
 }
+
+@media (max-width: 900px) {
+  :root[data-theme="light"] body::after {
+    opacity: 0.48;
+  }
+}

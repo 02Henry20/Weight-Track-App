@@ -28,12 +28,12 @@ function refreshColors() {
   COLORS.white = styles.getPropertyValue("--text").trim() || COLORS.white;
 }
 
-function prepareCanvas(canvas) {
+function prepareCanvas(canvas, { maxDpr = 3 } = {}) {
   refreshColors();
   const rectangle = canvas.getBoundingClientRect();
   const width = Math.max(260, rectangle.width || canvas.parentElement?.clientWidth || 600);
   const height = Math.max(210, rectangle.height || canvas.parentElement?.clientHeight || 300);
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
 
   canvas.width = Math.round(width * dpr);
   canvas.height = Math.round(height * dpr);
@@ -43,6 +43,8 @@ function prepareCanvas(canvas) {
   context.clearRect(0, 0, width, height);
   context.lineCap = "round";
   context.lineJoin = "round";
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
 
   return { context, width, height };
 }
@@ -515,8 +517,8 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
   setChartAvailability(canvas, available);
   if (!available) return;
 
-  const { context, width, height } = prepareCanvas(canvas);
-  const area = chartArea(width, height, { left: 88, right: 20, top: 24, bottom: 94 });
+  const { context, width, height } = prepareCanvas(canvas, { maxDpr: 4 });
+  const area = chartArea(width, height, { left: 96, right: 24, top: 28, bottom: 98 });
   const xBands = bodyFatBands(settings.referenceSex);
   const yBands = metricBands(metric, settings.referenceSex);
   const xMin = xBands[0].min;
@@ -533,13 +535,13 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
     context.fillStyle = band.color;
     context.fillRect(left, area.top, right - left, area.bottom - area.top);
     context.strokeStyle = "rgba(142, 161, 185, 0.18)";
-    context.lineWidth = 1;
+    context.lineWidth = 1.15;
     context.beginPath();
     context.moveTo(left, area.top);
     context.lineTo(left, area.bottom);
     context.stroke();
     context.fillStyle = COLORS.text;
-    context.font = "10px system-ui, sans-serif";
+    context.font = "600 11px system-ui, sans-serif";
     if (right - left > 34) {
       context.save();
       context.translate((left + right) / 2, area.bottom + 8);
@@ -562,8 +564,8 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
     "rgba(47, 135, 255, 0.06)",
     "rgba(148, 117, 255, 0.07)"
   ];
-  context.strokeStyle = "rgba(142, 161, 185, 0.2)";
-  context.lineWidth = 1;
+  context.strokeStyle = "rgba(142, 161, 185, 0.24)";
+  context.lineWidth = 1.25;
   yBands.forEach((band, index) => {
     const yTop = yScale(band.max);
     const yBottom = yScale(band.min);
@@ -574,6 +576,7 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
     context.lineTo(area.right, yTop);
     context.stroke();
     context.fillStyle = COLORS.text;
+    context.font = "600 11px system-ui, sans-serif";
     context.textAlign = "right";
     context.textBaseline = "middle";
     context.fillText(band.label, area.left - 10, (yTop + yBottom) / 2);
@@ -584,10 +587,10 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
   context.stroke();
 
   context.fillStyle = COLORS.text;
-  context.font = "11px system-ui, sans-serif";
+  context.font = "700 12px system-ui, sans-serif";
   context.textAlign = "center";
   context.fillText("Body fat %", (area.left + area.right) / 2, height - 8);
-  context.font = "10px system-ui, sans-serif";
+  context.font = "600 11px system-ui, sans-serif";
   context.textAlign = "left";
   context.fillText("Leaner", area.left, area.top - 8);
   context.textAlign = "right";
@@ -603,7 +606,7 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
   if (points.length > 1) {
     context.save();
     context.strokeStyle = "rgba(148, 117, 255, 0.54)";
-    context.lineWidth = 2;
+    context.lineWidth = 2.5;
     context.beginPath();
     points.forEach((point, index) => {
       const x = xScale(point.x);
@@ -624,8 +627,11 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
     context.shadowBlur = latest ? 18 : 7;
     context.fillStyle = latest ? COLORS.cyan : COLORS.purple;
     context.beginPath();
-    context.arc(x, y, latest ? 7 : 4, 0, Math.PI * 2);
+    context.arc(x, y, latest ? 7.5 : 4.5, 0, Math.PI * 2);
     context.fill();
+    context.strokeStyle = latest ? COLORS.white : "rgba(244, 248, 255, 0.58)";
+    context.lineWidth = latest ? 2.25 : 1.25;
+    context.stroke();
     context.restore();
     hitPoints.push({
       x,

@@ -166,13 +166,17 @@
                 <div><p class="eyebrow">TARGET</p><h3>Weight goal</h3></div>
                 <button class="icon-button" data-go-view="goals" type="button" aria-label="Open goals">→</button>
               </div>
-              <div class="goal-distance" aria-label="Distance to target">
-                <div class="goal-distance-copy">
-                  <strong id="goal-distance-value">—</strong>
-                  <span id="goal-distance-label">Set a target weight</span>
+              <div class="goal-countdown" aria-label="Estimated time to target">
+                <div class="goal-countdown-copy">
+                  <strong id="goal-days-value">—</strong>
+                  <span id="goal-days-label">Set a target weight</span>
                 </div>
-                <div class="goal-distance-track" aria-hidden="true"><span id="goal-distance-fill"></span></div>
-                <div class="goal-distance-ends"><span>Starting point</span><span>Target</span></div>
+                <div class="goal-time-rail" aria-hidden="true">
+                  <span class="goal-time-origin"></span>
+                  <span class="goal-time-line"></span>
+                  <span class="goal-time-target">◆</span>
+                </div>
+                <div class="goal-time-ends"><span>Today</span><span id="goal-time-end-label">Target</span></div>
               </div>
               <div class="goal-details">
                 <div><span>Target</span><strong id="goal-target-weight">—</strong></div>
@@ -245,21 +249,7 @@
               <div><span>Projected weight</span><strong id="trend-projected">—</strong></div>
             </article>
 
-            <article id="trend-confidence-card" class="trend-confidence-card glass-panel">
-              <p class="eyebrow">TREND CONFIDENCE</p>
-              <h3>Signal readiness</h3>
-              <div class="trend-score-block">
-                <div class="trend-score-heading"><span>Data sufficiency</span><strong id="trend-sufficiency-score">0%</strong></div>
-                <div class="trend-score-meter sufficiency"><span id="trend-sufficiency-fill"></span></div>
-              </div>
-              <div class="trend-score-block">
-                <div class="trend-score-heading"><span>Volatility</span><strong id="trend-volatility-score">—</strong></div>
-                <div class="trend-score-meter volatility"><span id="trend-volatility-fill"></span></div>
-              </div>
-              <p id="trend-confidence-copy" class="trend-confidence-copy">Add measurements across the selected window to assess trend stability.</p>
-            </article>
-
-            <article class="chart-card glass-panel span-2">
+            <article id="maintenance-analysis-card" class="chart-card glass-panel span-2">
               <div class="panel-heading">
                 <div><p class="eyebrow">ENERGY BALANCE</p><h3>Calorie intake and maintenance estimate</h3></div>
                 <span id="maintenance-confidence" class="confidence-badge">No estimate</span>
@@ -271,12 +261,23 @@
               </div>
             </article>
 
-            <article class="data-quality-card glass-panel">
-              <p class="eyebrow">MODEL QUALITY</p>
-              <h3>Estimate readiness</h3>
+            <article id="analysis-quality-card" class="analysis-quality-card glass-panel">
+              <div class="analysis-quality-heading">
+                <div><p class="eyebrow">MODEL &amp; TREND QUALITY</p><h3>Estimate readiness</h3></div>
+                <strong id="quality-score">0%</strong>
+              </div>
               <div class="quality-meter"><span id="quality-meter-fill"></span></div>
-              <strong id="quality-score">0%</strong>
-              <p id="quality-copy">Add data across multiple weeks to improve the estimates.</p>
+              <p id="quality-copy" class="analysis-quality-copy">Add data across multiple weeks to improve the estimates.</p>
+              <div class="analysis-quality-divider"></div>
+              <div class="trend-score-block">
+                <div class="trend-score-heading"><span>Data sufficiency</span><strong id="trend-sufficiency-score">0%</strong></div>
+                <div class="trend-score-meter sufficiency"><span id="trend-sufficiency-fill"></span></div>
+              </div>
+              <div class="trend-score-block">
+                <div class="trend-score-heading"><span>Weight volatility</span><strong id="trend-volatility-score">—</strong></div>
+                <div class="trend-score-meter volatility"><span id="trend-volatility-fill"></span></div>
+              </div>
+              <p id="trend-confidence-copy" class="trend-confidence-copy">Add measurements across the selected window to assess trend stability.</p>
             </article>
           </div>
         </section>
@@ -308,7 +309,6 @@
                 <span class="metric-tag">Reference view</span>
               </div>
               <div class="chart-wrap physique-map-wrap"><canvas id="physique-map-chart"></canvas><div class="chart-empty" data-empty-for="physique-map-chart">Add body-fat data and set your height.</div></div>
-              <p class="disclaimer plot-note">Training reference only. Hydration and measurement method can shift the result.</p>
             </article>
           </div>
         </section>
@@ -358,7 +358,7 @@
 
                 <label class="field"><span>Weight smoothing period</span><select id="setting-smoothing"><option value="1">No smoothing</option><option value="3">3 days</option><option value="7">7 days</option><option value="14">14 days</option></select></label>
                 <label class="field"><span>Trend analysis window</span><select id="setting-trend-window"><option value="14">14 days</option><option value="28">28 days</option><option value="42">42 days</option><option value="60">60 days</option><option value="90">90 days</option></select></label>
-                <label class="field"><span>Trend confidence view</span><select id="setting-trend-confidence"><option value="on">Show data sufficiency and volatility</option><option value="off">Hide confidence view</option></select></label>
+                <label class="field"><span>Analysis quality panel</span><select id="setting-trend-confidence"><option value="on">Show model quality, sufficiency and volatility</option><option value="off">Hide the combined quality panel</option></select></label>
                 <label class="field"><span>Maintenance estimation window</span><select id="setting-maintenance-window"><option value="14">14 days</option><option value="21">21 days</option><option value="28">28 days</option><option value="42">42 days</option><option value="60">60 days</option></select></label>
                 <label class="field"><span>Prediction horizon</span><select id="setting-prediction-months"><option value="1">1 month</option><option value="2">2 months</option><option value="3">3 months</option><option value="6">6 months</option><option value="12">12 months</option></select></label>
                 <label class="field"><span>Chart history</span><select id="setting-chart-range"><option value="30">30 days</option><option value="90">90 days</option><option value="180">6 months</option><option value="365">1 year</option><option value="0">All data</option></select></label>
@@ -383,6 +383,7 @@
                 <div><span>Calorie records</span><strong id="settings-calorie-count">0</strong></div>
                 <div><span>Local cache</span><strong>Enabled</strong></div>
                 <div><span>Cloud database</span><strong>Firebase Firestore</strong></div>
+                <div><span>App version</span><strong id="settings-app-version">—</strong></div>
               </div>
               <button id="export-data-button" class="secondary-button full-width" type="button">Export JSON backup</button>
               <label class="secondary-button full-width file-button">Import JSON backup<input id="import-data-input" type="file" accept="application/json" hidden></label>

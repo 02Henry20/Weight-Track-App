@@ -281,8 +281,7 @@
 .goal-card,
 .quick-actions,
 .metric-stack,
-.data-quality-card,
-.trend-confidence-card {
+.analysis-quality-card {
   grid-column: 2;
 }
 
@@ -370,4 +369,13 @@
 
 .mobile-nav {
   display: none;
+}
+
+.goal-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.analytics-grid.quality-panel-hidden #maintenance-analysis-card {
+  grid-column: 1 / -1;
 }

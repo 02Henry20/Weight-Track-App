@@ -27,5 +27,6 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "version": "2.1.0"
 }
