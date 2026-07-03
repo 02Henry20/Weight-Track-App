@@ -1,18 +1,11 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    function owns(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-
-    match /apps/weight-tracker/users/{userId}/weights/{weightId} {
-      allow read, delete: if owns(userId);
-      allow create, update: if owns(userId)
-        && request.resource.data.keys().hasOnly(['date', 'weight', 'updatedAt'])
-        && request.resource.data.date == weightId
-        && request.resource.data.weight is number
-        && request.resource.data.weight >= 20
-        && request.resource.data.weight <= 500;
+    match /apps/weight-tracker/users/{userId}/{document=**} {
+      allow read, write:
+        if request.auth != null
+        && request.auth.uid == userId;
     }
   }
 }

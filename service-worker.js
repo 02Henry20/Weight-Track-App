@@ -1,1 +1,104 @@
-const APP_CACHE="firebase-weight-tracker-app-fixed-v2",MODULE_CACHE="firebase-weight-tracker-firebase-modules-v1",SHELL=["./","./index.html","./styles.css","./app.js?v=fixed-v2","./firebase-config.js?v=fixed-v2","./manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png"];self.addEventListener("install",e=>e.waitUntil(caches.open(APP_CACHE).then(c=>c.addAll(SHELL.map(u=>new Request(u,{cache:"reload"}))))));self.addEventListener("activate",e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith("firebase-weight-tracker-app-")&&k!==APP_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));self.addEventListener("message",e=>{if(e.data?.type==="SKIP_WAITING")self.skipWaiting()});self.addEventListener("fetch",e=>{if(e.request.method!=="GET")return;const u=new URL(e.request.url);if(u.hostname==="www.gstatic.com"&&u.pathname.startsWith("/firebasejs/12.15.0/")){e.respondWith(caches.open(MODULE_CACHE).then(async c=>{const hit=await c.match(e.request);if(hit)return hit;const r=await fetch(e.request);await c.put(e.request,r.clone());return r}));return}if(u.origin!==self.location.origin)return;if(e.request.mode==="navigate"){e.respondWith(fetch(e.request).then(r=>{const cp=r.clone();caches.open(APP_CACHE).then(c=>c.put("./index.html",cp));return r}).catch(()=>caches.match("./index.html")));return}e.respondWith(caches.match(e.request).then(hit=>hit||fetch(e.request).then(r=>{if(r.ok)caches.open(APP_CACHE).then(c=>c.put(e.request,r.clone()));return r})))});
+const APP_CACHE = "mass-track-app-v1";
+const FIREBASE_CACHE = "mass-track-firebase-modules-v1";
+const FIREBASE_VERSION = "12.15.0";
+
+const APP_SHELL = [
+  "./",
+  "./index.html",
+  "./manifest.webmanifest",
+  "./styles/base.css",
+  "./styles/components.css",
+  "./styles/layout.css",
+  "./styles/responsive.css",
+  "./js/app.js",
+  "./js/firebase-config.js",
+  "./js/firebase.js",
+  "./js/store.js",
+  "./js/calculations.js",
+  "./js/charts.js",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png"
+];
+
+self.addEventListener("install", event => {
+  event.waitUntil(
+    caches.open(APP_CACHE).then(cache =>
+      cache.addAll(APP_SHELL.map(url => new Request(url, { cache: "reload" })))
+    )
+  );
+});
+
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(
+        keys
+          .filter(key =>
+            key !== APP_CACHE && (
+              key.startsWith("mass-track-app-") ||
+              key.startsWith("firebase-weight-tracker") ||
+              key.startsWith("weight-tracker-shell-")
+            )
+          )
+          .map(key => caches.delete(key))
+      ))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener("message", event => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
+
+self.addEventListener("fetch", event => {
+  if (event.request.method !== "GET") return;
+
+  const url = new URL(event.request.url);
+
+  // Cache the Firebase JavaScript SDK modules for offline app startup.
+  // Firestore/Auth network traffic is intentionally not intercepted.
+  if (
+    url.hostname === "www.gstatic.com" &&
+    url.pathname.startsWith(`/firebasejs/${FIREBASE_VERSION}/`)
+  ) {
+    event.respondWith(
+      caches.open(FIREBASE_CACHE).then(async cache => {
+        const cached = await cache.match(event.request);
+        if (cached) return cached;
+        const response = await fetch(event.request);
+        if (response.ok) await cache.put(event.request, response.clone());
+        return response;
+      })
+    );
+    return;
+  }
+
+  if (url.origin !== self.location.origin) return;
+
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          const copy = response.clone();
+          caches.open(APP_CACHE).then(cache => cache.put("./index.html", copy));
+          return response;
+        })
+        .catch(() => caches.match("./index.html"))
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request).then(cached => {
+      const networkRequest = fetch(event.request).then(response => {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(APP_CACHE).then(cache => cache.put(event.request, copy));
+        }
+        return response;
+      });
+
+      return cached ?? networkRequest;
+    })
+  );
+});

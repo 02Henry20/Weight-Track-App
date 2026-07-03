@@ -1,14 +1,15 @@
 {
-  "name": "Firebase Weight Tracker",
-  "short_name": "Weight",
-  "description": "A local-first weight tracker synchronized with Firebase.",
+  "name": "MASS // TRACK",
+  "short_name": "Mass Track",
+  "description": "Local-first weight, body-composition and calorie analytics synchronized with Firebase.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#f7f8fb",
-  "theme_color": "#2563eb",
+  "orientation": "any",
+  "background_color": "#050b14",
+  "theme_color": "#07111f",
+  "categories": ["health", "fitness", "lifestyle"],
   "icons": [
     {
       "src": "./icons/icon-192.png",

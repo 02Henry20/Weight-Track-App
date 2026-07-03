@@ -1,7 +1,3 @@
-// Firebase Web configuration for the Weight Tracker project.
-// This client configuration is public by design. Firestore access is protected
-// by Firebase Authentication and the rules in firestore.rules.
-
 export const firebaseConfig = {
   apiKey: "AIzaSyCJHwDxf-IZYu08gUkMk5HIns1jHKrLA3w",
   authDomain: "weight-track-app-e0e2c.firebaseapp.com",

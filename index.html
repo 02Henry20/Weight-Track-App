@@ -1,21 +1,458 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#2563eb"><meta name="description" content="A local-first Firebase weight tracker"><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icons/icon-192.png"><link rel="apple-touch-icon" href="./icons/icon-192.png"><link rel="stylesheet" href="./styles.css"><title>Firebase Weight Tracker</title></head><body><main class="shell"><header class="header"><div><p class="eyebrow">LOCAL-FIRST · FIREBASE SYNC</p><h1>Weight Tracker</h1></div><span class="version version-new">Version 2</span></header><section id="boot-status" class="card boot-card">
-  <div class="boot-row">
-    <span class="boot-spinner" aria-hidden="true"></span>
-    <div>
-      <h2 id="boot-title">Connecting to Firebase…</h2>
-      <p id="boot-message" class="muted">The sign-in fields below are ready. Firebase should connect automatically.</p>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07111f">
+  <meta name="description" content="Local-first weight, nutrition and body-composition tracking with Firebase synchronization.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles/base.css">
+  <link rel="stylesheet" href="./styles/components.css">
+  <link rel="stylesheet" href="./styles/layout.css">
+  <link rel="stylesheet" href="./styles/responsive.css">
+  <title>MASS // TRACK</title>
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <main id="auth-shell" class="auth-shell">
+    <section class="auth-brand-panel">
+      <div class="brand-mark" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+      <p class="eyebrow">BODY DATA · CLEAR SIGNAL</p>
+      <h1>MASS <span>//</span> TRACK</h1>
+      <p class="auth-intro">
+        Track weight, body composition and calorie intake. Keep working offline and synchronize securely through Firebase.
+      </p>
+      <div class="auth-feature-grid">
+        <div><strong>Offline first</strong><span>Cached locally</span></div>
+        <div><strong>Cloud safe</strong><span>Firebase sync</span></div>
+        <div><strong>Adaptive</strong><span>Trend estimates</span></div>
+      </div>
+    </section>
+
+    <section class="auth-card glass-panel">
+      <div id="boot-status" class="boot-status">
+        <span class="status-light"></span>
+        <span id="boot-text">Loading Firebase…</span>
+      </div>
+      <h2>Access your data</h2>
+      <p class="muted">Use the Firebase email/password account you already created.</p>
+
+      <form id="auth-form" class="stack-form">
+        <label class="field">
+          <span>Email</span>
+          <input id="auth-email" type="email" autocomplete="email" placeholder="you@example.com" required>
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input id="auth-password" type="password" autocomplete="current-password" minlength="6" placeholder="At least 6 characters" required>
+        </label>
+        <button class="primary-button" type="submit">Sign in</button>
+        <div class="two-button-row">
+          <button id="create-account-button" class="secondary-button" type="button">Create account</button>
+          <button id="reset-password-button" class="ghost-button" type="button">Reset password</button>
+        </div>
+        <p id="auth-message" class="form-message" aria-live="polite"></p>
+      </form>
+    </section>
+  </main>
+
+  <div id="app-shell" class="app-shell" hidden>
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark small" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div>
+          <strong>MASS <span>//</span> TRACK</strong>
+          <small>Personal analytics</small>
+        </div>
+      </div>
+
+      <nav class="main-nav" aria-label="Main navigation">
+        <button class="nav-button active" data-view="overview" type="button">
+          <span class="nav-icon">⌂</span><span>Overview</span>
+        </button>
+        <button class="nav-button" data-view="log" type="button">
+          <span class="nav-icon">＋</span><span>Log data</span>
+        </button>
+        <button class="nav-button" data-view="trends" type="button">
+          <span class="nav-icon">↗</span><span>Trends</span>
+        </button>
+        <button class="nav-button" data-view="body" type="button">
+          <span class="nav-icon">◫</span><span>Body</span>
+        </button>
+        <button class="nav-button" data-view="goals" type="button">
+          <span class="nav-icon">◎</span><span>Goals</span>
+        </button>
+        <button class="nav-button" data-view="settings" type="button">
+          <span class="nav-icon">⚙</span><span>Settings</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sync-pill" id="sync-pill">
+          <span class="sync-dot"></span>
+          <div><strong id="sync-label">Connecting</strong><small id="sync-detail">Checking local cache</small></div>
+        </div>
+        <button id="sign-out-button" class="ghost-button full-width" type="button">Sign out</button>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <div>
+          <p id="view-kicker" class="eyebrow">TODAY'S SIGNAL</p>
+          <h2 id="view-title">Overview</h2>
+        </div>
+        <div class="topbar-actions">
+          <span id="user-chip" class="user-chip"></span>
+          <button id="header-add-weight" class="primary-button compact" type="button">＋ Add weight</button>
+        </div>
+      </header>
+
+      <div class="content-scroll">
+        <section class="view-section active" data-view-section="overview">
+          <div class="hero-grid">
+            <article class="hero-card glass-panel reveal-card">
+              <div class="metric-label-row">
+                <span>Current weight</span>
+                <span id="overview-weight-date" class="metric-tag">No data</span>
+              </div>
+              <div class="hero-number"><span id="overview-current-weight">—</span><small>kg</small></div>
+              <div id="overview-weight-change" class="metric-delta neutral">Add your first measurement</div>
+              <button id="overview-add-weight" class="inline-action" type="button">Log today's weight →</button>
+            </article>
+
+            <article class="metric-card glass-panel reveal-card">
+              <span class="metric-title">7-day average</span>
+              <strong id="overview-average-weight">—</strong>
+              <small id="overview-average-note">Waiting for measurements</small>
+            </article>
+
+            <article class="metric-card glass-panel reveal-card">
+              <span class="metric-title">Trend</span>
+              <strong id="overview-weekly-trend">—</strong>
+              <small id="overview-trend-note">Based on configured window</small>
+            </article>
+
+            <article class="metric-card accent glass-panel reveal-card">
+              <span class="metric-title">Estimated maintenance</span>
+              <strong id="overview-maintenance">—</strong>
+              <small id="overview-maintenance-note">Needs weight + calorie history</small>
+            </article>
+          </div>
+
+          <div class="dashboard-grid">
+            <article class="chart-card glass-panel span-2 reveal-card">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">WEIGHT SIGNAL</p>
+                  <h3>Trend and projection</h3>
+                </div>
+                <div class="legend-row">
+                  <span><i class="legend-dot raw"></i>Measured</span>
+                  <span><i class="legend-dot average"></i>Average</span>
+                  <span><i class="legend-dot forecast"></i>Forecast</span>
+                </div>
+              </div>
+              <div class="chart-wrap overview-chart-wrap">
+                <canvas id="overview-weight-chart"></canvas>
+                <div class="chart-empty" data-empty-for="overview-weight-chart">Add at least two weight measurements.</div>
+              </div>
+            </article>
+
+            <article class="goal-card glass-panel reveal-card">
+              <div class="panel-heading compact-heading">
+                <div><p class="eyebrow">TARGET</p><h3>Weight goal</h3></div>
+                <button class="icon-button" data-go-view="goals" type="button" aria-label="Open goals">→</button>
+              </div>
+              <div class="goal-ring" id="goal-ring"><div><strong id="goal-progress">—</strong><span>progress</span></div></div>
+              <div class="goal-details">
+                <div><span>Target</span><strong id="goal-target-weight">—</strong></div>
+                <div><span>Projected ETA</span><strong id="goal-eta">—</strong></div>
+              </div>
+            </article>
+
+            <article class="quick-actions glass-panel reveal-card">
+              <div class="panel-heading compact-heading"><div><p class="eyebrow">QUICK ENTRY</p><h3>Log data</h3></div></div>
+              <div class="quick-action-grid">
+                <button data-open-modal="weight" type="button"><span>＋</span><strong>Weight</strong><small>Daily measurement</small></button>
+                <button data-open-modal="body" type="button"><span>％</span><strong>Body fat</strong><small>Composition check</small></button>
+                <button data-open-modal="calories" type="button"><span>⚡</span><strong>Calories</strong><small>Daily or weekly</small></button>
+              </div>
+            </article>
+
+            <article class="insight-card glass-panel reveal-card span-2">
+              <div class="panel-heading compact-heading"><div><p class="eyebrow">LATEST INSIGHT</p><h3 id="insight-title">Build your baseline</h3></div><span id="insight-confidence" class="confidence-badge">No data</span></div>
+              <p id="insight-text">Log weight regularly and add calorie averages. The app will estimate your underlying trend, maintenance calories and future trajectory.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="view-section" data-view-section="log">
+          <div class="section-intro">
+            <div><p class="eyebrow">INPUT</p><h3>Log measurements</h3><p>Each data stream is separate, so a body-composition weight may differ from your daily scale weight.</p></div>
+          </div>
+
+          <div class="entry-type-grid">
+            <button class="entry-type-card glass-panel" data-open-modal="weight" type="button">
+              <span class="entry-symbol">＋</span><div><strong>Add weight</strong><small>One daily measurement · 0.1 kg steps</small></div><span>→</span>
+            </button>
+            <button class="entry-type-card glass-panel" data-open-modal="body" type="button">
+              <span class="entry-symbol">％</span><div><strong>Add body composition</strong><small>Body-fat percentage and associated weight</small></div><span>→</span>
+            </button>
+            <button class="entry-type-card glass-panel" data-open-modal="calories" type="button">
+              <span class="entry-symbol">⚡</span><div><strong>Add calorie intake</strong><small>Per day or total per week</small></div><span>→</span>
+            </button>
+          </div>
+
+          <div class="history-grid">
+            <article class="history-card glass-panel">
+              <div class="panel-heading"><div><p class="eyebrow">WEIGHT</p><h3>Recent measurements</h3></div><span id="weight-count-badge" class="metric-tag">0</span></div>
+              <div id="weight-history" class="history-list"></div>
+            </article>
+            <article class="history-card glass-panel">
+              <div class="panel-heading"><div><p class="eyebrow">BODY</p><h3>Composition entries</h3></div><span id="body-count-badge" class="metric-tag">0</span></div>
+              <div id="body-history" class="history-list"></div>
+            </article>
+            <article class="history-card glass-panel">
+              <div class="panel-heading"><div><p class="eyebrow">NUTRITION</p><h3>Calorie entries</h3></div><span id="calorie-count-badge" class="metric-tag">0</span></div>
+              <div id="calorie-history" class="history-list"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="view-section" data-view-section="trends">
+          <div class="analytics-grid">
+            <article class="chart-card glass-panel span-2">
+              <div class="panel-heading">
+                <div><p class="eyebrow">WEIGHT EVOLUTION</p><h3>Measured, smoothed and predicted</h3></div>
+                <span id="trend-window-badge" class="metric-tag"></span>
+              </div>
+              <div class="chart-wrap tall"><canvas id="trend-weight-chart"></canvas><div class="chart-empty" data-empty-for="trend-weight-chart">Add at least two weight measurements.</div></div>
+            </article>
+
+            <article class="metric-stack glass-panel">
+              <div><span>Current smoothed weight</span><strong id="trend-current">—</strong></div>
+              <div><span>Weekly velocity</span><strong id="trend-rate">—</strong></div>
+              <div><span>Projected weight</span><strong id="trend-projected">—</strong></div>
+              <div><span>Trend fit</span><strong id="trend-fit">—</strong></div>
+            </article>
+
+            <article class="chart-card glass-panel span-2">
+              <div class="panel-heading">
+                <div><p class="eyebrow">ENERGY BALANCE</p><h3>Calorie intake and maintenance estimate</h3></div>
+                <span id="maintenance-confidence" class="confidence-badge">No estimate</span>
+              </div>
+              <div class="chart-wrap tall"><canvas id="maintenance-chart"></canvas><div class="chart-empty" data-empty-for="maintenance-chart">Add calorie entries and regular weight measurements.</div></div>
+              <div class="formula-note">
+                <strong id="maintenance-summary">—</strong>
+                <span id="maintenance-explanation">Maintenance is estimated from average intake and the measured weight trend.</span>
+              </div>
+            </article>
+
+            <article class="chart-card glass-panel">
+              <div class="panel-heading"><div><p class="eyebrow">CONSISTENCY</p><h3>Weekly averages</h3></div></div>
+              <div class="chart-wrap"><canvas id="weekly-average-chart"></canvas><div class="chart-empty" data-empty-for="weekly-average-chart">More measurements are needed.</div></div>
+            </article>
+
+            <article class="data-quality-card glass-panel">
+              <p class="eyebrow">MODEL QUALITY</p>
+              <h3>Estimate readiness</h3>
+              <div class="quality-meter"><span id="quality-meter-fill"></span></div>
+              <strong id="quality-score">0%</strong>
+              <p id="quality-copy">Add data across multiple weeks to improve the estimates.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="view-section" data-view-section="body">
+          <div class="body-metric-grid">
+            <article class="metric-card glass-panel"><span class="metric-title">Body fat</span><strong id="body-latest-fat">—</strong><small id="body-fat-category">No composition data</small></article>
+            <article class="metric-card glass-panel"><span class="metric-title">Lean mass</span><strong id="body-lean-mass">—</strong><small>Estimated from body-fat entry</small></article>
+            <article class="metric-card glass-panel"><span class="metric-title">BMI</span><strong id="body-bmi">—</strong><small id="body-bmi-category">Set height in settings</small></article>
+            <article class="metric-card accent glass-panel"><span class="metric-title">Normalized FFMI</span><strong id="body-ffmi">—</strong><small id="body-ffmi-category">Training reference</small></article>
+          </div>
+
+          <div class="analytics-grid">
+            <article class="chart-card glass-panel span-2">
+              <div class="panel-heading"><div><p class="eyebrow">COMPOSITION</p><h3>Body fat, lean mass and fat mass</h3></div></div>
+              <div class="chart-wrap tall"><canvas id="body-composition-chart"></canvas><div class="chart-empty" data-empty-for="body-composition-chart">Add at least two body-composition entries.</div></div>
+            </article>
+
+            <article class="chart-card glass-panel span-2">
+              <div class="panel-heading">
+                <div><p class="eyebrow">PHYSIQUE MAP</p><h3>Body fat vs <span id="map-metric-name">FFMI</span></h3></div>
+                <span class="metric-tag">Reference view</span>
+              </div>
+              <div class="chart-wrap physique-map-wrap"><canvas id="physique-map-chart"></canvas><div class="chart-empty" data-empty-for="physique-map-chart">Add body-fat data and set your height.</div></div>
+              <p class="disclaimer">This map is a training-oriented reference, not a medical diagnosis. Body-fat methods and hydration can materially affect the result.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="view-section" data-view-section="goals">
+          <div class="goals-layout">
+            <article class="goal-form-card glass-panel">
+              <div class="panel-heading"><div><p class="eyebrow">TARGETS</p><h3>Set your goals</h3></div></div>
+              <form id="goals-form" class="stack-form">
+                <label class="field"><span>Target weight (kg)</span><input id="goal-weight-input" type="number" min="20" max="500" step="0.1" placeholder="68.0"></label>
+                <label class="field"><span>Target daily calorie deficit</span><input id="goal-deficit-input" type="number" min="0" max="1500" step="25" placeholder="300"></label>
+                <label class="field"><span>Optional target date</span><input id="goal-date-input" type="date"></label>
+                <button class="primary-button" type="submit">Save goals</button>
+                <p id="goals-message" class="form-message" aria-live="polite"></p>
+              </form>
+            </article>
+
+            <article class="goal-forecast-card glass-panel">
+              <p class="eyebrow">FORECAST</p>
+              <h3 id="goal-forecast-title">Set a target to begin</h3>
+              <div class="forecast-number"><strong id="goal-days-remaining">—</strong><span>estimated days</span></div>
+              <div class="goal-stat-list">
+                <div><span>Current trend</span><strong id="goal-current-trend">—</strong></div>
+                <div><span>Suggested intake</span><strong id="goal-suggested-intake">—</strong></div>
+                <div><span>Predicted target date</span><strong id="goal-predicted-date">—</strong></div>
+                <div><span>Difference to target</span><strong id="goal-difference">—</strong></div>
+              </div>
+              <p class="disclaimer">Forecasts extrapolate recent data and may change as intake, activity, water and body composition change.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="view-section" data-view-section="settings">
+          <div class="settings-layout">
+            <article class="settings-card glass-panel">
+              <div class="panel-heading"><div><p class="eyebrow">PROFILE</p><h3>Body reference</h3></div></div>
+              <form id="settings-form" class="settings-form">
+                <label class="field"><span>Height (cm)</span><input id="setting-height" type="number" min="120" max="230" step="0.1"></label>
+                <label class="field"><span>Body-fat reference profile</span><select id="setting-reference-sex"><option value="male">Male reference</option><option value="female">Female reference</option></select></label>
+                <label class="field"><span>Physique map vertical metric</span><select id="setting-map-metric"><option value="ffmi">Normalized FFMI</option><option value="bmi">BMI</option></select></label>
+
+                <div class="settings-divider"></div>
+                <p class="settings-group-title">Averaging and models</p>
+
+                <label class="field"><span>Weight smoothing period</span><select id="setting-smoothing"><option value="1">No smoothing</option><option value="3">3 days</option><option value="7">7 days</option><option value="14">14 days</option></select></label>
+                <label class="field"><span>Trend analysis window</span><select id="setting-trend-window"><option value="14">14 days</option><option value="28">28 days</option><option value="42">42 days</option><option value="60">60 days</option><option value="90">90 days</option></select></label>
+                <label class="field"><span>Maintenance estimation window</span><select id="setting-maintenance-window"><option value="14">14 days</option><option value="21">21 days</option><option value="28">28 days</option><option value="42">42 days</option><option value="60">60 days</option></select></label>
+                <label class="field"><span>Prediction horizon</span><select id="setting-prediction-months"><option value="1">1 month</option><option value="2">2 months</option><option value="3">3 months</option><option value="6">6 months</option><option value="12">12 months</option></select></label>
+                <label class="field"><span>Chart history</span><select id="setting-chart-range"><option value="30">30 days</option><option value="90">90 days</option><option value="180">6 months</option><option value="365">1 year</option><option value="0">All data</option></select></label>
+                <label class="field"><span>Energy conversion estimate (kcal/kg)</span><input id="setting-energy-density" type="number" min="4000" max="10000" step="100"></label>
+
+                <button class="primary-button" type="submit">Save settings</button>
+                <p id="settings-message" class="form-message" aria-live="polite"></p>
+              </form>
+            </article>
+
+            <article class="settings-card glass-panel">
+              <div class="panel-heading"><div><p class="eyebrow">DATA</p><h3>Storage and account</h3></div></div>
+              <div class="settings-info-list">
+                <div><span>Signed in as</span><strong id="settings-user-email">—</strong></div>
+                <div><span>Weight records</span><strong id="settings-weight-count">0</strong></div>
+                <div><span>Body records</span><strong id="settings-body-count">0</strong></div>
+                <div><span>Calorie records</span><strong id="settings-calorie-count">0</strong></div>
+                <div><span>Local cache</span><strong>Enabled</strong></div>
+                <div><span>Cloud database</span><strong>Firebase Firestore</strong></div>
+              </div>
+              <button id="export-data-button" class="secondary-button full-width" type="button">Export JSON backup</button>
+              <label class="secondary-button full-width file-button">Import JSON backup<input id="import-data-input" type="file" accept="application/json" hidden></label>
+              <p class="disclaimer">Cloud sync is the primary backup. A JSON export gives you an additional portable copy.</p>
+            </article>
+          </div>
+        </section>
+      </div>
     </div>
+
+    <nav class="mobile-nav" aria-label="Mobile navigation">
+      <button class="active" data-view="overview" type="button"><span>⌂</span><small>Home</small></button>
+      <button data-view="log" type="button"><span>＋</span><small>Log</small></button>
+      <button data-view="trends" type="button"><span>↗</span><small>Trends</small></button>
+      <button data-view="body" type="button"><span>◫</span><small>Body</small></button>
+      <button data-view="settings" type="button"><span>⚙</span><small>More</small></button>
+    </nav>
   </div>
-</section><section id="configuration-view" class="card setup" hidden><h2>Firebase configuration required</h2><p>Open <code>firebase-config.js</code> and replace every placeholder with the Web app configuration copied from Firebase.</p></section><section id="auth-view" class="card auth-card"><h2>Sign in</h2><p class="muted">Use the same Firebase account to restore your weights after local browser data is cleared.</p><form id="auth-form"><label for="email">Email</label><input id="email" type="email" autocomplete="email" required><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" minlength="6" required><div class="auth-actions"><button type="submit">Sign in</button><button id="create-account" class="secondary" type="button">Create account</button></div><button id="reset-password" class="ghost" type="button">Send password reset email</button><p id="auth-message" class="message" aria-live="polite"></p></form></section><p id="auth-help" class="auth-help">Create an account or sign in first. The weight input appears immediately afterward.</p><section id="app-view" hidden><div class="row"><span id="user-email" class="email"></span><button id="sign-out" class="ghost" type="button">Sign out</button></div><div class="sync"><span id="sync-status" class="sync-status offline"><span class="dot"></span><span id="sync-text">Starting…</span></span><span id="source-text" class="muted"></span></div><section class="summary"><article><span>Latest</span><strong id="latest">—</strong></article><article><span>Average</span><strong id="average">—</strong></article><article><span>Total change</span><strong id="change">—</strong></article></section><section class="card"><div class="section-head"><h2>Progress</h2><span class="feature">New in V2</span></div><div id="chart-empty" class="empty">Add at least two entries to see a trend.</div><svg id="chart" class="chart" viewBox="0 0 600 220" role="img" aria-label="Weight trend" hidden></svg></section><section class="card"><form id="weight-form"><label for="weight">Weight in kilograms</label><div class="weight-row"><input id="weight" type="number" inputmode="decimal" min="20" max="500" step="0.1" placeholder="72.0" required><span>kg</span></div><label for="date">Date</label><input id="date" type="date" required><button type="submit">Save or update weight</button><p id="form-message" class="message" aria-live="polite"></p></form></section><section class="card"><div class="section-head"><h2>Saved entries</h2><span id="entry-count" class="muted">0 entries</span></div><div id="empty" class="empty">No weights saved yet.</div><ol id="weight-list" class="list"></ol></section><p class="storage">Cached locally for offline use and synchronized to Cloud Firestore.</p></section></main><aside id="update-banner" class="update" hidden><span>A new version is available.</span><button id="update-button" type="button">Update now</button></aside><script>
-window.__firebaseWeightTrackerStarted = false;
-window.setTimeout(() => {
-  if (window.__firebaseWeightTrackerStarted) return;
-  const status = document.querySelector("#boot-status");
-  const title = document.querySelector("#boot-title");
-  const message = document.querySelector("#boot-message");
-  if (status) status.classList.add("boot-error");
-  if (title) title.textContent = "Firebase did not load";
-  if (message) message.textContent =
-    "The input fields are visible, but the Firebase script failed to start. Reload once while online. If this remains, open the browser console or check that GitHub Pages deployed every file.";
-}, 7000);
-</script><script type="module" src="./app.js?v=fixed-v2"></script></body></html>
+
+  <div id="modal-backdrop" class="modal-backdrop" hidden>
+    <section id="weight-modal" class="modal-card" data-modal="weight" hidden aria-modal="true" role="dialog" aria-labelledby="weight-modal-title">
+      <div class="modal-heading"><div><p class="eyebrow">DAILY SCALE</p><h3 id="weight-modal-title">Add weight</h3></div><button class="icon-button" data-close-modal type="button">×</button></div>
+      <form id="weight-form" class="stack-form">
+        <label class="field"><span>Measurement date</span><input id="weight-date" type="date" required></label>
+        <div class="stepper-block">
+          <span>Weight</span>
+          <div class="large-stepper">
+            <button data-step-target="weight-value" data-step="-0.1" type="button">−</button>
+            <label><input id="weight-value" type="number" min="20" max="500" step="0.1" required><span>kg</span></label>
+            <button data-step-target="weight-value" data-step="0.1" type="button">＋</button>
+          </div>
+          <small id="weight-last-note">Starts from your latest measurement.</small>
+        </div>
+        <button class="primary-button" type="submit">Save weight</button>
+        <p id="weight-form-message" class="form-message" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section id="body-modal" class="modal-card" data-modal="body" hidden aria-modal="true" role="dialog" aria-labelledby="body-modal-title">
+      <div class="modal-heading"><div><p class="eyebrow">COMPOSITION</p><h3 id="body-modal-title">Add body composition</h3></div><button class="icon-button" data-close-modal type="button">×</button></div>
+      <form id="body-form" class="stack-form">
+        <label class="field"><span>Measurement date</span><input id="body-date" type="date" required></label>
+        <div class="stepper-block">
+          <span>Body-fat percentage</span>
+          <div class="large-stepper">
+            <button data-step-target="body-fat-value" data-step="-0.1" type="button">−</button>
+            <label><input id="body-fat-value" type="number" min="2" max="70" step="0.1" required><span>%</span></label>
+            <button data-step-target="body-fat-value" data-step="0.1" type="button">＋</button>
+          </div>
+        </div>
+        <div class="stepper-block compact-stepper-block">
+          <span>Weight used for this body-fat reading</span>
+          <div class="large-stepper compact-stepper">
+            <button data-step-target="body-weight-value" data-step="-0.1" type="button">−</button>
+            <label><input id="body-weight-value" type="number" min="20" max="500" step="0.1" required><span>kg</span></label>
+            <button data-step-target="body-weight-value" data-step="0.1" type="button">＋</button>
+          </div>
+          <small>This can differ from your daily weight measurement.</small>
+        </div>
+        <button class="primary-button" type="submit">Save body composition</button>
+        <p id="body-form-message" class="form-message" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section id="calorie-modal" class="modal-card" data-modal="calories" hidden aria-modal="true" role="dialog" aria-labelledby="calorie-modal-title">
+      <div class="modal-heading"><div><p class="eyebrow">INTAKE</p><h3 id="calorie-modal-title">Add calorie consumption</h3></div><button class="icon-button" data-close-modal type="button">×</button></div>
+      <form id="calorie-form" class="stack-form">
+        <label class="field"><span>Period ending date</span><input id="calorie-date" type="date" required></label>
+        <div class="segmented-control" role="group" aria-label="Calorie input unit">
+          <button class="active" data-calorie-mode="daily" type="button">Per day</button>
+          <button data-calorie-mode="weekly" type="button">Per week</button>
+        </div>
+        <label class="field"><span id="calorie-value-label">Average kcal for this day</span><input id="calorie-value" type="number" min="0" max="50000" step="10" inputmode="numeric" placeholder="2400" required></label>
+        <div class="calorie-preview"><span>Normalized daily average</span><strong id="calorie-daily-preview">— kcal/day</strong></div>
+        <button class="primary-button" type="submit">Save calorie entry</button>
+        <p id="calorie-form-message" class="form-message" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section id="confirm-modal" class="modal-card confirm-card" data-modal="confirm" hidden aria-modal="true" role="dialog" aria-labelledby="confirm-title">
+      <div class="confirm-icon">!</div>
+      <h3 id="confirm-title">Overwrite existing entry?</h3>
+      <p id="confirm-copy">A measurement already exists for this date.</p>
+      <div class="two-button-row">
+        <button id="confirm-cancel" class="secondary-button" type="button">Cancel</button>
+        <button id="confirm-accept" class="danger-button" type="button">Overwrite</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <aside id="update-banner" class="update-banner" hidden>
+    <div><strong>Update ready</strong><span>A new app version is available.</span></div>
+    <button id="update-button" class="primary-button compact" type="button">Update now</button>
+  </aside>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
