@@ -1,7 +1,7 @@
 {
-  "name": "Weight Tracker",
+  "name": "Firebase Weight Tracker",
   "short_name": "Weight",
-  "description": "A private, local-first weight tracker.",
+  "description": "A local-first weight tracker synchronized with Firebase.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
