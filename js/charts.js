@@ -14,7 +14,22 @@ const COLORS = {
   white: "#f4f8ff"
 };
 
+function refreshColors() {
+  const styles = getComputedStyle(document.documentElement);
+  COLORS.grid = styles.getPropertyValue("--chart-grid").trim() || COLORS.grid;
+  COLORS.text = styles.getPropertyValue("--chart-text").trim() || COLORS.text;
+  COLORS.blue = styles.getPropertyValue("--blue").trim() || COLORS.blue;
+  COLORS.cyan = styles.getPropertyValue("--cyan").trim() || COLORS.cyan;
+  COLORS.green = styles.getPropertyValue("--green").trim() || COLORS.green;
+  COLORS.yellow = styles.getPropertyValue("--yellow").trim() || COLORS.yellow;
+  COLORS.red = styles.getPropertyValue("--red").trim() || COLORS.red;
+  COLORS.purple = styles.getPropertyValue("--purple").trim() || COLORS.purple;
+  COLORS.muted = styles.getPropertyValue("--muted").trim() || COLORS.muted;
+  COLORS.white = styles.getPropertyValue("--text").trim() || COLORS.white;
+}
+
 function prepareCanvas(canvas) {
+  refreshColors();
   const rectangle = canvas.getBoundingClientRect();
   const width = Math.max(260, rectangle.width || canvas.parentElement?.clientWidth || 600);
   const height = Math.max(210, rectangle.height || canvas.parentElement?.clientHeight || 300);
@@ -158,7 +173,7 @@ function drawLine(context, points, xScale, yScale, style = {}) {
       context.arc(hitPoint.x, hitPoint.y, style.pointRadius ?? 3.5, 0, Math.PI * 2);
       context.fill();
       context.beginPath();
-      context.strokeStyle = "rgba(5, 11, 20, 0.8)";
+      context.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--chart-point-outline").trim() || "rgba(5, 11, 20, 0.8)";
       context.lineWidth = 2;
       context.arc(hitPoint.x, hitPoint.y, style.pointRadius ?? 3.5, 0, Math.PI * 2);
       context.stroke();
@@ -232,7 +247,7 @@ function attachTooltip(canvas, hitPoints, valueFormatter = value => String(value
   });
 }
 
-export function drawWeightChart(canvas, analysis, { compact = false, targetWeight = null } = {}) {
+export function drawWeightChart(canvas, analysis, { compact = false, targetWeight = null, settings = null } = {}) {
   const raw = compact ? analysis.chartRaw : analysis.chartRaw;
   const smoothed = compact ? analysis.chartSmoothed : analysis.chartSmoothed;
   const forecast = analysis.forecast ?? [];
@@ -249,7 +264,13 @@ export function drawWeightChart(canvas, analysis, { compact = false, targetWeigh
     ...forecast.map(point => point.value),
     Number(targetWeight)
   ];
-  const [yMin, yMax] = valueExtent(allValues, 0.15, 0.4);
+  let [yMin, yMax] = valueExtent(allValues, 0.15, 0.4);
+  const fixedMin = Number(settings?.chartWeightMin);
+  const fixedMax = Number(settings?.chartWeightMax);
+  if (settings?.chartScaleMode === "fixed" && Number.isFinite(fixedMin) && Number.isFinite(fixedMax) && fixedMin < fixedMax) {
+    yMin = fixedMin;
+    yMax = fixedMax;
+  }
   const xScale = scaleLinear(minTime, maxTime, area.left, area.right);
   const yScale = scaleLinear(yMin, yMax, area.bottom, area.top);
 
@@ -392,48 +413,63 @@ export function drawBodyCompositionChart(canvas, bodyAnalysis) {
   if (!available) return;
 
   const { context, width, height } = prepareCanvas(canvas);
-  const area = chartArea(width, height, { left: 52, right: 54, bottom: 36 });
+  const area = chartArea(width, height, { left: 58, right: 70, bottom: 38 });
   const [minTime, maxTime] = dateExtent([entries]);
-  const massValues = entries.flatMap(point => [point.leanMass, point.fatMass]);
+  const leanValues = entries.map(point => point.leanMass);
+  const fatMassValues = entries.map(point => point.fatMass);
   const fatPercentValues = entries.map(point => point.bodyFat);
-  const [massMinRaw, massMax] = valueExtent(massValues, 0.16, 1);
-  const massMin = Math.max(0, massMinRaw);
-  const [fatMinRaw, fatMax] = valueExtent(fatPercentValues, 0.2, 1);
-  const fatMin = Math.max(0, fatMinRaw);
+  const [leanMinRaw, leanMax] = valueExtent(leanValues, 0.22, 0.5);
+  const leanMin = Math.max(0, leanMinRaw);
+  const [fatMassMinRaw, fatMassMax] = valueExtent(fatMassValues, 0.22, 0.4);
+  const fatMassMin = Math.max(0, fatMassMinRaw);
+  const [fatPercentMinRaw, fatPercentMax] = valueExtent(fatPercentValues, 0.22, 0.4);
+  const fatPercentMin = Math.max(0, fatPercentMinRaw);
   const xScale = scaleLinear(minTime, maxTime, area.left, area.right);
-  const massScale = scaleLinear(massMin, massMax, area.bottom, area.top);
-  const fatScale = scaleLinear(fatMin, fatMax, area.bottom, area.top);
+  const leanScale = scaleLinear(leanMin, leanMax, area.bottom, area.top);
+  const fatMassScale = scaleLinear(fatMassMin, fatMassMax, area.bottom, area.top);
+  const fatPercentScale = scaleLinear(fatPercentMin, fatPercentMax, area.bottom, area.top);
 
-  drawGrid(context, area, massMin, massMax, massScale, 4);
+  drawGrid(context, area, leanMin, leanMax, leanScale, 4, value => `${formatAxisNumber(value)}`);
   drawDateLabels(context, area, minTime, maxTime, xScale, 4);
 
   context.save();
   context.font = "11px system-ui, sans-serif";
-  context.fillStyle = COLORS.text;
-  context.textAlign = "left";
   context.textBaseline = "middle";
   for (let index = 0; index <= 4; index += 1) {
-    const value = fatMax - index * (fatMax - fatMin) / 4;
-    const y = fatScale(value);
-    context.fillText(`${value.toFixed(1)}%`, area.right + 8, y);
+    const ratio = index / 4;
+    const fatMassValue = fatMassMax - ratio * (fatMassMax - fatMassMin);
+    const fatPercentValue = fatPercentMax - ratio * (fatPercentMax - fatPercentMin);
+    const y = area.top + ratio * (area.bottom - area.top);
+    context.textAlign = "left";
+    context.fillStyle = COLORS.yellow;
+    context.fillText(`${fatMassValue.toFixed(1)} kg`, area.right + 8, y - 6);
+    context.fillStyle = COLORS.purple;
+    context.fillText(`${fatPercentValue.toFixed(1)}%`, area.right + 8, y + 7);
   }
+  context.textAlign = "left";
+  context.fillStyle = COLORS.cyan;
+  context.fillText("Lean kg", area.left, area.top - 9);
+  context.fillStyle = COLORS.yellow;
+  context.fillText("Fat kg", area.right - 44, area.top - 9);
+  context.fillStyle = COLORS.purple;
+  context.fillText("BF%", area.right + 28, area.top - 9);
   context.restore();
 
-  const leanPoints = drawLine(context, entries.map(point => ({ date: point.date, value: point.leanMass })), xScale, massScale, {
+  const leanPoints = drawLine(context, entries.map(point => ({ date: point.date, value: point.leanMass })), xScale, leanScale, {
     color: COLORS.cyan,
     width: 3,
     points: true,
     pointRadius: 3.6,
     label: "Lean mass"
   });
-  const fatMassPoints = drawLine(context, entries.map(point => ({ date: point.date, value: point.fatMass })), xScale, massScale, {
+  const fatMassPoints = drawLine(context, entries.map(point => ({ date: point.date, value: point.fatMass })), xScale, fatMassScale, {
     color: COLORS.yellow,
-    width: 2.3,
+    width: 2.8,
     points: true,
     pointRadius: 3.2,
     label: "Fat mass"
   });
-  const fatPercentPoints = drawLine(context, entries.map(point => ({ date: point.date, value: point.bodyFat })), xScale, fatScale, {
+  const fatPercentPoints = drawLine(context, entries.map(point => ({ date: point.date, value: point.bodyFat })), xScale, fatPercentScale, {
     color: COLORS.purple,
     width: 2.2,
     dash: [6, 5],
@@ -496,7 +532,7 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
   if (!available) return;
 
   const { context, width, height } = prepareCanvas(canvas);
-  const area = chartArea(width, height, { left: 55, right: 20, top: 24, bottom: 42 });
+  const area = chartArea(width, height, { left: 88, right: 20, top: 24, bottom: 34 });
   const xBands = bodyFatBands(settings.referenceSex);
   const yBands = metricBands(metric, settings.referenceSex);
   const xMin = xBands[0].min;
@@ -512,18 +548,35 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
     const right = xScale(band.max);
     context.fillStyle = band.color;
     context.fillRect(left, area.top, right - left, area.bottom - area.top);
+    context.strokeStyle = "rgba(142, 161, 185, 0.18)";
+    context.lineWidth = 1;
+    context.beginPath();
+    context.moveTo(left, area.top);
+    context.lineTo(left, area.bottom);
+    context.stroke();
     context.fillStyle = COLORS.text;
     context.font = "10px system-ui, sans-serif";
     context.textAlign = "center";
-    if (right - left > 47) context.fillText(band.label, (left + right) / 2, area.bottom + 29);
+    if (right - left > 47) context.fillText(band.label, (left + right) / 2, area.bottom + 22);
   }
+  context.beginPath();
+  context.moveTo(area.right, area.top);
+  context.lineTo(area.right, area.bottom);
+  context.stroke();
 
-  context.strokeStyle = COLORS.grid;
+  const rowColors = [
+    "rgba(50, 215, 232, 0.045)",
+    "rgba(53, 208, 127, 0.05)",
+    "rgba(240, 187, 69, 0.045)",
+    "rgba(47, 135, 255, 0.04)",
+    "rgba(148, 117, 255, 0.045)"
+  ];
+  context.strokeStyle = "rgba(142, 161, 185, 0.2)";
   context.lineWidth = 1;
-  for (const band of yBands) {
+  yBands.forEach((band, index) => {
     const yTop = yScale(band.max);
     const yBottom = yScale(band.min);
-    context.fillStyle = "rgba(255,255,255,0.018)";
+    context.fillStyle = rowColors[index % rowColors.length];
     context.fillRect(area.left, yTop, area.right - area.left, yBottom - yTop);
     context.beginPath();
     context.moveTo(area.left, yTop);
@@ -532,15 +585,19 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
     context.fillStyle = COLORS.text;
     context.textAlign = "right";
     context.textBaseline = "middle";
-    context.fillText(band.label, area.left - 8, (yTop + yBottom) / 2);
-  }
+    context.fillText(band.label, area.left - 10, (yTop + yBottom) / 2);
+  });
+  context.beginPath();
+  context.moveTo(area.left, area.bottom);
+  context.lineTo(area.right, area.bottom);
+  context.stroke();
 
   context.fillStyle = COLORS.text;
   context.font = "11px system-ui, sans-serif";
   context.textAlign = "center";
-  context.fillText("Body fat %", (area.left + area.right) / 2, height - 4);
+  context.fillText("Body fat %", (area.left + area.right) / 2, height - 8);
   context.save();
-  context.translate(10, (area.top + area.bottom) / 2);
+  context.translate(16, (area.top + area.bottom) / 2);
   context.rotate(-Math.PI / 2);
   context.fillText(metric === "bmi" ? "BMI" : "Normalized FFMI", 0, 0);
   context.restore();

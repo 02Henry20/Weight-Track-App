@@ -219,11 +219,11 @@ export function buildCalorieTimeline(entries) {
     .map(entry => ({ ...entry, value: Number(entry.value) }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  // Weekly values are applied to the seven days ending on the selected date.
+  // Weekly entries store a kcal/day average and apply it to the seven days ending on the selected date.
   for (const entry of sorted.filter(item => item.mode === "weekly")) {
     const dailyAverage = Number.isFinite(Number(entry.dailyAverage))
       ? Number(entry.dailyAverage)
-      : entry.value / 7;
+      : entry.value;
     for (let offset = 6; offset >= 0; offset -= 1) {
       timeline.set(addDays(entry.date, -offset), {
         date: addDays(entry.date, -offset),

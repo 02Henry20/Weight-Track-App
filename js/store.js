@@ -10,6 +10,7 @@ import {
 } from "./firebase.js";
 
 export const DEFAULT_SETTINGS = Object.freeze({
+  theme: "dark",
   heightCm: 171,
   referenceSex: "male",
   mapMetric: "ffmi",
@@ -18,6 +19,9 @@ export const DEFAULT_SETTINGS = Object.freeze({
   maintenanceWindowDays: 28,
   predictionMonths: 3,
   chartRangeDays: 180,
+  chartScaleMode: "auto",
+  chartWeightMin: "",
+  chartWeightMax: "",
   energyDensityKcalPerKg: 7700
 });
 
@@ -253,7 +257,7 @@ export function saveCalories({ date, mode, value }) {
     date,
     mode,
     value: numericValue,
-    dailyAverage: mode === "weekly" ? numericValue / 7 : numericValue,
+    dailyAverage: numericValue,
     updatedAt: serverTimestamp()
   });
 }
@@ -271,6 +275,7 @@ export function saveGoals(goals) {
 export function saveSettings(settings) {
   const user = requireUser();
   return setDoc(userDoc(user.uid, "settings", "preferences"), {
+    theme: settings.theme === "light" ? "light" : "dark",
     heightCm: Number(settings.heightCm),
     referenceSex: settings.referenceSex,
     mapMetric: settings.mapMetric,
@@ -279,6 +284,9 @@ export function saveSettings(settings) {
     maintenanceWindowDays: Number(settings.maintenanceWindowDays),
     predictionMonths: Number(settings.predictionMonths),
     chartRangeDays: Number(settings.chartRangeDays),
+    chartScaleMode: settings.chartScaleMode === "fixed" ? "fixed" : "auto",
+    chartWeightMin: settings.chartWeightMin === "" ? "" : Number(settings.chartWeightMin),
+    chartWeightMax: settings.chartWeightMax === "" ? "" : Number(settings.chartWeightMax),
     energyDensityKcalPerKg: Number(settings.energyDensityKcalPerKg),
     updatedAt: serverTimestamp()
   });
@@ -309,7 +317,7 @@ export function exportState() {
     exportedAt: new Date().toISOString(),
     weights: state.weights.map(({ date, weight }) => ({ date, weight })),
     bodyEntries: state.bodyEntries.map(({ date, bodyFat, weight }) => ({ date, bodyFat, weight })),
-    calorieEntries: state.calorieEntries.map(({ date, mode, value }) => ({ date, mode, value })),
+    calorieEntries: state.calorieEntries.map(({ date, mode, value, dailyAverage }) => ({ date, mode, value, dailyAverage })),
     settings: { ...state.settings },
     goals: { ...state.goals }
   };
@@ -348,13 +356,14 @@ export async function importState(backup) {
     const value = Number(entry.value);
     if (!entry.date || !Number.isFinite(value)) continue;
     const mode = entry.mode === "weekly" ? "weekly" : "daily";
+    const dailyAverage = Number(entry.dailyAverage);
     operations.push({
       ref: userDoc(user.uid, "calories", entry.date),
       data: {
         date: entry.date,
         mode,
         value,
-        dailyAverage: mode === "weekly" ? value / 7 : value,
+        dailyAverage: Number.isFinite(dailyAverage) ? dailyAverage : (mode === "weekly" ? value / 7 : value),
         updatedAt: serverTimestamp()
       }
     });

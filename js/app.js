@@ -40,7 +40,6 @@ import {
   drawBodyCompositionChart,
   drawMaintenanceChart,
   drawPhysiqueMap,
-  drawWeeklyAverageChart,
   drawWeightChart,
   redrawOnResize
 } from "./charts.js";
@@ -354,16 +353,15 @@ function updateCalorieModeUI() {
     button.classList.toggle("active", button.dataset.calorieMode === currentCalorieMode);
   });
   document.querySelector("#calorie-value-label").textContent = currentCalorieMode === "weekly"
-    ? "Total calories for the 7-day period"
+    ? "Average kcal/day for this 7-day period"
     : "Calories for this day";
-  document.querySelector("#calorie-value").placeholder = currentCalorieMode === "weekly" ? "16800" : "2400";
+  document.querySelector("#calorie-value").placeholder = "2400";
 }
 
 function updateCaloriePreview() {
   const value = Number(document.querySelector("#calorie-value").value);
-  const daily = currentCalorieMode === "weekly" ? value / 7 : value;
-  document.querySelector("#calorie-daily-preview").textContent = Number.isFinite(daily) && daily > 0
-    ? `${Math.round(daily).toLocaleString()} kcal/day`
+  document.querySelector("#calorie-daily-preview").textContent = Number.isFinite(value) && value > 0
+    ? `${Math.round(value).toLocaleString()} kcal/day`
     : "— kcal/day";
 }
 
@@ -421,7 +419,7 @@ async function submitCalories(event) {
   const date = document.querySelector("#calorie-date").value;
   const value = Number(document.querySelector("#calorie-value").value);
   const message = document.querySelector("#calorie-form-message");
-  const maximum = currentCalorieMode === "weekly" ? 50_000 : 10_000;
+  const maximum = 10_000;
 
   if (!date || !Number.isFinite(value) || value <= 0 || value > maximum) {
     setFormMessage(message, "Enter a valid calorie value for the selected period.", true);
@@ -464,6 +462,7 @@ function submitGoals(event) {
 function submitSettings(event) {
   event.preventDefault();
   const settings = {
+    theme: document.querySelector("#setting-theme").value,
     heightCm: document.querySelector("#setting-height").value,
     referenceSex: document.querySelector("#setting-reference-sex").value,
     mapMetric: document.querySelector("#setting-map-metric").value,
@@ -472,12 +471,21 @@ function submitSettings(event) {
     maintenanceWindowDays: document.querySelector("#setting-maintenance-window").value,
     predictionMonths: document.querySelector("#setting-prediction-months").value,
     chartRangeDays: document.querySelector("#setting-chart-range").value,
+    chartScaleMode: document.querySelector("#setting-chart-scale-mode").value,
+    chartWeightMin: document.querySelector("#setting-chart-weight-min").value,
+    chartWeightMax: document.querySelector("#setting-chart-weight-max").value,
     energyDensityKcalPerKg: document.querySelector("#setting-energy-density").value
   };
   const message = document.querySelector("#settings-message");
 
   if (Number(settings.heightCm) < 120 || Number(settings.heightCm) > 230) {
     setFormMessage(message, "Height must be between 120 and 230 cm.", true);
+    return;
+  }
+  const fixedMin = Number(settings.chartWeightMin);
+  const fixedMax = Number(settings.chartWeightMax);
+  if (settings.chartScaleMode === "fixed" && (!Number.isFinite(fixedMin) || !Number.isFinite(fixedMax) || fixedMin >= fixedMax)) {
+    setFormMessage(message, "Fixed weight chart range needs a valid minimum below maximum.", true);
     return;
   }
 
@@ -586,7 +594,7 @@ function renderOverview(analyses) {
     : 0;
   setText("#overview-average-note", weight.average7 == null ? "Waiting for measurements" : `${averageCount} measurement${averageCount === 1 ? "" : "s"} in the last 7 days`);
   setText("#overview-weekly-trend", weight.weeklyRate == null ? "—" : `${formatSigned(weight.weeklyRate, 2)} kg/wk`);
-  setText("#overview-trend-note", weight.regression ? `${state.settings.trendWindowDays}-day model · R² ${weight.regression.r2.toFixed(2)}` : "Needs at least two measurements");
+  setText("#overview-trend-note", weight.regression ? `${state.settings.trendWindowDays}-day model` : "Needs at least two measurements");
   setText("#overview-maintenance", maintenance.current?.estimate == null ? "—" : `${Math.round(maintenance.current.estimate).toLocaleString()} kcal`);
   setText("#overview-maintenance-note", maintenance.current?.estimate == null ? "Needs weight + calorie history" : `${maintenance.current.confidence} confidence · ±${Math.round(maintenance.current.uncertainty)} kcal`);
 
@@ -635,8 +643,8 @@ function renderLog() {
 
   renderHistory("calorie-history", state.calorieEntries, entry => createHistoryRow({
     title: formatLongDate(entry.date),
-    subtitle: entry.mode === "weekly" ? "7-day total" : "Daily intake",
-    value: entry.mode === "weekly" ? `${Math.round(entry.value).toLocaleString()} kcal/wk` : `${Math.round(entry.value).toLocaleString()} kcal`,
+    subtitle: entry.mode === "weekly" ? "7-day kcal/day average" : "Daily intake",
+    value: entry.mode === "weekly" ? `${Math.round(entry.dailyAverage ?? entry.value).toLocaleString()} kcal/day` : `${Math.round(entry.value).toLocaleString()} kcal`,
     pending: entry.pending,
     collectionName: "calories",
     id: entry.id
@@ -649,7 +657,6 @@ function renderTrends(analyses) {
   setText("#trend-current", weight.current == null ? "—" : `${weight.current.toFixed(1)} kg`);
   setText("#trend-rate", weight.weeklyRate == null ? "—" : `${formatSigned(weight.weeklyRate, 2)} kg/week`);
   setText("#trend-projected", weight.projectedWeight == null ? "—" : `${weight.projectedWeight.toFixed(1)} kg`);
-  setText("#trend-fit", weight.regression == null ? "—" : `R² ${weight.regression.r2.toFixed(2)}`);
 
   if (maintenance.current?.estimate != null) {
     setConfidenceBadge("#maintenance-confidence", maintenance.current.confidence, maintenance.current.confidenceScore);
@@ -703,6 +710,7 @@ function renderGoals(analyses) {
 function renderSettings() {
   const form = document.querySelector("#settings-form");
   if (!form.contains(document.activeElement)) {
+    document.querySelector("#setting-theme").value = state.settings.theme;
     document.querySelector("#setting-height").value = state.settings.heightCm;
     document.querySelector("#setting-reference-sex").value = state.settings.referenceSex;
     document.querySelector("#setting-map-metric").value = state.settings.mapMetric;
@@ -711,8 +719,12 @@ function renderSettings() {
     document.querySelector("#setting-maintenance-window").value = String(state.settings.maintenanceWindowDays);
     document.querySelector("#setting-prediction-months").value = String(state.settings.predictionMonths);
     document.querySelector("#setting-chart-range").value = String(state.settings.chartRangeDays);
+    document.querySelector("#setting-chart-scale-mode").value = state.settings.chartScaleMode;
+    document.querySelector("#setting-chart-weight-min").value = state.settings.chartWeightMin ?? "";
+    document.querySelector("#setting-chart-weight-max").value = state.settings.chartWeightMax ?? "";
     document.querySelector("#setting-energy-density").value = String(state.settings.energyDensityKcalPerKg);
   }
+  document.querySelector("#chart-fixed-range-fields")?.classList.toggle("hidden", state.settings.chartScaleMode !== "fixed");
 
   setText("#settings-weight-count", state.weights.length.toString());
   setText("#settings-body-count", state.bodyEntries.length.toString());
@@ -735,18 +747,19 @@ function renderActiveCharts() {
   if (activeView === "overview") {
     drawWeightChart(document.querySelector("#overview-weight-chart"), weight, {
       compact: true,
-      targetWeight: state.goals.targetWeight
+      targetWeight: state.goals.targetWeight,
+      settings: state.settings
     });
   }
 
   if (activeView === "trends") {
     drawWeightChart(document.querySelector("#trend-weight-chart"), weight, {
-      targetWeight: state.goals.targetWeight
+      targetWeight: state.goals.targetWeight,
+      settings: state.settings
     });
     drawMaintenanceChart(document.querySelector("#maintenance-chart"), maintenance, {
       dailyDeficit: state.goals.dailyDeficit
     });
-    drawWeeklyAverageChart(document.querySelector("#weekly-average-chart"), weight.weekly);
   }
 
   if (activeView === "body") {
@@ -761,6 +774,7 @@ function scheduleRender() {
   window.requestAnimationFrame(() => {
     renderScheduled = false;
     latestAnalyses = calculateAnalyses();
+    document.documentElement.dataset.theme = state.settings.theme === "light" ? "light" : "dark";
     updateSyncStatus();
     renderOverview(latestAnalyses);
     renderLog();
@@ -886,6 +900,13 @@ function bindEvents() {
     });
   });
   document.querySelector("#calorie-value").addEventListener("input", updateCaloriePreview);
+  document.querySelector("#setting-theme").addEventListener("change", event => {
+    document.documentElement.dataset.theme = event.target.value === "light" ? "light" : "dark";
+    renderActiveCharts();
+  });
+  document.querySelector("#setting-chart-scale-mode").addEventListener("change", event => {
+    document.querySelector("#chart-fixed-range-fields")?.classList.toggle("hidden", event.target.value !== "fixed");
+  });
 
   document.querySelector("#weight-form").addEventListener("submit", submitWeight);
   document.querySelector("#body-form").addEventListener("submit", submitBody);

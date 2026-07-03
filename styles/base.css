@@ -23,9 +23,37 @@
   --radius-md: 14px;
   --sidebar-width: 246px;
   --topbar-height: 86px;
+  --chart-grid: rgba(142, 161, 185, 0.13);
+  --chart-text: rgba(185, 199, 216, 0.78);
+  --chart-point-outline: rgba(5, 11, 20, 0.8);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f5f7fb;
+  --bg-elevated: #ffffff;
+  --panel: rgba(255, 255, 255, 0.9);
+  --panel-solid: #ffffff;
+  --panel-hover: #eef4fb;
+  --line: rgba(35, 66, 105, 0.14);
+  --line-strong: rgba(47, 135, 255, 0.32);
+  --text: #172235;
+  --muted: #66758a;
+  --muted-strong: #3c4b60;
+  --blue: #1f74ea;
+  --blue-bright: #0d68dd;
+  --cyan: #009caf;
+  --green: #168a52;
+  --yellow: #a36b00;
+  --red: #d43850;
+  --purple: #7257d8;
+  --shadow: 0 20px 55px rgba(41, 62, 92, 0.13);
+  --chart-grid: rgba(48, 78, 112, 0.16);
+  --chart-text: rgba(55, 71, 93, 0.78);
+  --chart-point-outline: rgba(255, 255, 255, 0.92);
 }
 
 * {
@@ -48,6 +76,13 @@ body {
   color: var(--text);
 }
 
+:root[data-theme="light"] body {
+  background:
+    radial-gradient(circle at 80% -10%, rgba(47, 135, 255, 0.11), transparent 34rem),
+    radial-gradient(circle at 8% 98%, rgba(0, 156, 175, 0.08), transparent 32rem),
+    var(--bg);
+}
+
 button,
 input,
 select {
@@ -63,6 +98,11 @@ button {
 input,
 select {
   color-scheme: dark;
+}
+
+:root[data-theme="light"] input,
+:root[data-theme="light"] select {
+  color-scheme: light;
 }
 
 button:focus-visible,
@@ -86,7 +126,7 @@ p {
 h1,
 h2,
 h3 {
-  letter-spacing: -0.035em;
+  letter-spacing: 0;
 }
 
 h1 {
@@ -150,12 +190,20 @@ canvas {
   backdrop-filter: blur(18px);
 }
 
+:root[data-theme="light"] .glass-panel {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(246, 249, 253, 0.9));
+}
+
+.hidden {
+  display: none !important;
+}
+
 .eyebrow {
   margin-bottom: 7px;
   color: var(--blue-bright);
   font-size: 0.72rem;
   font-weight: 850;
-  letter-spacing: 0.16em;
+  letter-spacing: 0;
 }
 
 .muted {

@@ -79,6 +79,10 @@
   backdrop-filter: blur(22px);
 }
 
+:root[data-theme="light"] .sidebar {
+  background: rgba(255, 255, 255, 0.88);
+}
+
 .sidebar-brand {
   display: flex;
   align-items: center;
@@ -94,7 +98,7 @@
 
 .sidebar-brand strong {
   font-size: 0.84rem;
-  letter-spacing: -0.015em;
+  letter-spacing: 0;
   white-space: nowrap;
 }
 
@@ -186,6 +190,10 @@
   border-bottom: 1px solid var(--line);
   background: rgba(5, 13, 23, 0.78);
   backdrop-filter: blur(20px);
+}
+
+:root[data-theme="light"] .topbar {
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .topbar .eyebrow {
