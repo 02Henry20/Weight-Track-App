@@ -1,0 +1,12 @@
+// Add these entries to your service worker APP_SHELL array, then increase its cache version.
+"./manifest.webmanifest",
+"./browserconfig.xml",
+"./icons/favicon.svg",
+"./icons/favicon.ico",
+"./icons/favicon-16x16.png",
+"./icons/favicon-32x32.png",
+"./icons/apple/apple-touch-icon-180x180.png",
+"./icons/icon-192.png",
+"./icons/icon-512.png",
+"./icons/maskable-icon-192.png",
+"./icons/maskable-icon-512.png"

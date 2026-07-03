@@ -1,0 +1,2 @@
+CalStat Scheme D Icon Pack 1.0
+Manifest app version: 2.4.0
