@@ -1,9 +1,17 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { browserLocalPersistence,createUserWithEmailAndPassword,getAuth,onAuthStateChanged,sendPasswordResetEmail,setPersistence,signInWithEmailAndPassword,signOut } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { collection,deleteDoc,doc,initializeFirestore,onSnapshot,orderBy,persistentLocalCache,persistentMultipleTabManager,query,serverTimestamp,setDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js";
+import { firebaseConfig } from "./firebase-config.js?v=fixed-v1";
+window.__firebaseWeightTrackerStarted = true;
+const bootStatus = document.querySelector('#boot-status');
+const bootTitle = document.querySelector('#boot-title');
+const bootMessage = document.querySelector('#boot-message');
+if (bootStatus) bootStatus.classList.add('boot-ready');
+if (bootTitle) bootTitle.textContent = 'Firebase loaded';
+if (bootMessage) bootMessage.textContent = 'Sign in or create an account below. Your weights will be cached locally and synchronized with Firestore.';
 
-const configurationView=document.querySelector('#configuration-view'),authView=document.querySelector('#auth-view'),appView=document.querySelector('#app-view'),authForm=document.querySelector('#auth-form'),emailInput=document.querySelector('#email'),passwordInput=document.querySelector('#password'),createAccountButton=document.querySelector('#create-account'),resetPasswordButton=document.querySelector('#reset-password'),authMessage=document.querySelector('#auth-message'),signOutButton=document.querySelector('#sign-out'),userEmail=document.querySelector('#user-email'),syncStatus=document.querySelector('#sync-status'),syncText=document.querySelector('#sync-text'),sourceText=document.querySelector('#source-text');
+
+const authHelp=document.querySelector('#auth-help'),configurationView=document.querySelector('#configuration-view'),authView=document.querySelector('#auth-view'),appView=document.querySelector('#app-view'),authForm=document.querySelector('#auth-form'),emailInput=document.querySelector('#email'),passwordInput=document.querySelector('#password'),createAccountButton=document.querySelector('#create-account'),resetPasswordButton=document.querySelector('#reset-password'),authMessage=document.querySelector('#auth-message'),signOutButton=document.querySelector('#sign-out'),userEmail=document.querySelector('#user-email'),syncStatus=document.querySelector('#sync-status'),syncText=document.querySelector('#sync-text'),sourceText=document.querySelector('#source-text');
 let auth,db,activeUser=null,unsubscribeWeights=null,latestSnapshotFromCache=true,hasPendingWrites=false;
 const configured=()=>Object.values(firebaseConfig).every(v=>typeof v==='string'&&v.length>0&&!v.includes('PASTE_'));
 const msg=(el,text,error=false)=>{el.textContent=text;el.classList.toggle('error',error)};
@@ -16,8 +24,8 @@ function busy(v){authForm.querySelectorAll('button,input').forEach(x=>x.disabled
 authForm.addEventListener('submit',async e=>{e.preventDefault();msg(authMessage,'');busy(true);try{await signInWithEmailAndPassword(auth,emailInput.value.trim(),passwordInput.value)}catch(err){msg(authMessage,friendly(err),true)}finally{busy(false)}});
 createAccountButton.addEventListener('click',async()=>{msg(authMessage,'');busy(true);try{await createUserWithEmailAndPassword(auth,emailInput.value.trim(),passwordInput.value)}catch(err){msg(authMessage,friendly(err),true)}finally{busy(false)}});
 resetPasswordButton.addEventListener('click',async()=>{const email=emailInput.value.trim();if(!email){msg(authMessage,'Enter your email first.',true);return}busy(true);try{await sendPasswordResetEmail(auth,email);msg(authMessage,'Password reset email sent.')}catch(err){msg(authMessage,friendly(err),true)}finally{busy(false)}});
-function signedOut(){activeUser=null;unsubscribeWeights?.();unsubscribeWeights=null;authView.hidden=false;appView.hidden=true;passwordInput.value=''}
-function signedIn(user){activeUser=user;authView.hidden=true;appView.hidden=false;userEmail.textContent=user.email??user.uid;subscribeToWeights(user.uid)}
+function signedOut(){activeUser=null;unsubscribeWeights?.();unsubscribeWeights=null;authView.hidden=false;authHelp.hidden=false;appView.hidden=true;passwordInput.value=''}
+function signedIn(user){activeUser=user;authView.hidden=true;authHelp.hidden=true;appView.hidden=false;userEmail.textContent=user.email??user.uid;subscribeToWeights(user.uid)}
 function serviceWorker(){if(!('serviceWorker'in navigator))return;let pending=null,reloading=false;const banner=document.querySelector('#update-banner'),button=document.querySelector('#update-button');const show=w=>{pending=w;banner.hidden=false};window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('./service-worker.js',{updateViaCache:'none'});if(reg.waiting&&navigator.serviceWorker.controller)show(reg.waiting);reg.addEventListener('updatefound',()=>{const w=reg.installing;if(!w)return;w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller)show(w)})});reg.update().catch(console.error)}catch(e){console.error(e)}});button.addEventListener('click',()=>pending?.postMessage({type:'SKIP_WAITING'}));navigator.serviceWorker.addEventListener('controllerchange',()=>{if(reloading)return;reloading=true;location.reload()})}
 async function init(){if(!configured()){configurationView.hidden=false;return}try{const app=initializeApp(firebaseConfig);db=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});auth=getAuth(app);await setPersistence(auth,browserLocalPersistence);signOutButton.addEventListener('click',()=>signOut(auth));onAuthStateChanged(auth,u=>u?signedIn(u):signedOut());addEventListener('online',networkStatus);addEventListener('offline',networkStatus)}catch(e){configurationView.hidden=false;configurationView.innerHTML=`<h2>Firebase initialization failed</h2><p>${friendly(e)}</p>`;console.error(e)}}
 serviceWorker();init();
