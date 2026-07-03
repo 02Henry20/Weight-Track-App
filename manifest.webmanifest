@@ -1,7 +1,7 @@
 {
-  "name": "KiloPilot",
-  "short_name": "KiloPilot",
-  "description": "Local-first weight, body-composition and calorie analytics synchronized with Firebase.",
+  "name": "CalStat",
+  "short_name": "CalStat",
+  "description": "Local-first weight, nutrition and body-composition analytics synchronized with Firebase.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
@@ -9,7 +9,11 @@
   "orientation": "any",
   "background_color": "#050b14",
   "theme_color": "#07111f",
-  "categories": ["health", "fitness", "lifestyle"],
+  "categories": [
+    "health",
+    "fitness",
+    "lifestyle"
+  ],
   "icons": [
     {
       "src": "./icons/icon-192.png",

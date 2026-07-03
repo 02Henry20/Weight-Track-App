@@ -1,5 +1,5 @@
-const APP_CACHE = "mass-track-app-v1";
-const FIREBASE_CACHE = "mass-track-firebase-modules-v1";
+const APP_CACHE = "calstat-app-v2";
+const FIREBASE_CACHE = "calstat-firebase-modules-v1";
 const FIREBASE_VERSION = "12.15.0";
 
 const APP_SHELL = [
@@ -34,8 +34,11 @@ self.addEventListener("activate", event => {
       .then(keys => Promise.all(
         keys
           .filter(key =>
-            key !== APP_CACHE && (
+            ![APP_CACHE, FIREBASE_CACHE].includes(key) && (
+              key.startsWith("calstat-app-") ||
+              key.startsWith("calstat-firebase-") ||
               key.startsWith("mass-track-app-") ||
+              key.startsWith("mass-track-firebase-") ||
               key.startsWith("firebase-weight-tracker") ||
               key.startsWith("weight-tracker-shell-")
             )

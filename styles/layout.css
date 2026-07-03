@@ -145,10 +145,12 @@
 
 .nav-icon {
   display: grid;
-  width: 34px;
+  width: 42px;
   place-items: center;
   color: var(--blue-bright);
-  font-size: 1.42rem;
+  font-size: 1.82rem;
+  font-weight: 780;
+  line-height: 1;
 }
 
 .sidebar-footer {
@@ -279,7 +281,8 @@
 .goal-card,
 .quick-actions,
 .metric-stack,
-.data-quality-card {
+.data-quality-card,
+.trend-confidence-card {
   grid-column: 2;
 }
 

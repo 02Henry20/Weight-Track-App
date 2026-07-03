@@ -168,15 +168,25 @@ export function analyseWeight(weights, settings) {
       weeklyRate: null,
       projectedWeight: null,
       projectedDate: null,
-      weekly: []
+      weekly: [],
+      trendConfidence: {
+        dataSufficiencyScore: 0,
+        volatilityScore: null,
+        volatilityKg: null,
+        volatilityLabel: "No data",
+        measurementCount: 0,
+        spanDays: 0
+      }
     };
   }
 
   const latestDate = raw.at(-1).date;
   const chartRangeDays = Number(settings.chartRangeDays) || 0;
   const chartStart = chartRangeDays > 0 ? addDays(latestDate, -chartRangeDays) : raw[0].date;
-  const trendStart = addDays(latestDate, -(Number(settings.trendWindowDays) || 28));
+  const trendWindowDays = Number(settings.trendWindowDays) || 28;
+  const trendStart = addDays(latestDate, -trendWindowDays);
   const trendSource = smoothed.filter(point => point.date >= trendStart);
+  const rawTrendSource = raw.filter(point => point.date >= trendStart);
   const regression = linearRegression(trendSource);
   const predictionDays = Math.max(1, Number(settings.predictionMonths) || 3) * MONTH_DAYS;
   const projectedDate = addDays(latestDate, Math.round(predictionDays));
@@ -194,6 +204,36 @@ export function analyseWeight(weights, settings) {
   const average7Start = addDays(latestDate, -6);
   const average7 = mean(raw.filter(entry => entry.date >= average7Start).map(entry => entry.weight));
 
+  const measurementCount = rawTrendSource.length;
+  const spanDays = measurementCount >= 2
+    ? Math.max(1, daysBetween(rawTrendSource[0].date, rawTrendSource.at(-1).date))
+    : 0;
+  const countTarget = Math.max(7, Math.ceil(trendWindowDays * 0.55));
+  const countScore = clamp(measurementCount / countTarget, 0, 1);
+  const spanScore = clamp(spanDays / Math.max(7, trendWindowDays * 0.8), 0, 1);
+  const consistencyScore = spanDays > 0
+    ? clamp((measurementCount / (spanDays + 1)) / 0.65, 0, 1)
+    : measurementCount > 0 ? 0.15 : 0;
+  const dataSufficiencyScore = Math.round((countScore * 0.5 + spanScore * 0.3 + consistencyScore * 0.2) * 100);
+
+  let volatilityKg = null;
+  let volatilityScore = null;
+  let volatilityLabel = "Needs more data";
+  if (regression && rawTrendSource.length >= 3) {
+    const residuals = rawTrendSource.map(entry => entry.weight - regression.predict(entry.date));
+    const dailyChanges = [];
+    for (let index = 1; index < rawTrendSource.length; index += 1) {
+      const dayGap = Math.max(1, daysBetween(rawTrendSource[index - 1].date, rawTrendSource[index].date));
+      dailyChanges.push((rawTrendSource[index].weight - rawTrendSource[index - 1].weight) / Math.sqrt(dayGap));
+    }
+    const residualNoise = standardDeviation(residuals);
+    const changeNoise = standardDeviation(dailyChanges);
+    volatilityKg = residualNoise;
+    const combinedNoise = residualNoise * 0.72 + changeNoise * 0.28;
+    volatilityScore = Math.round(clamp(combinedNoise / 0.75, 0, 1) * 100);
+    volatilityLabel = volatilityScore < 28 ? "Low" : volatilityScore < 58 ? "Moderate" : "High";
+  }
+
   return {
     raw,
     smoothed,
@@ -208,7 +248,121 @@ export function analyseWeight(weights, settings) {
     weeklyRate: regression ? regression.slope * 7 : null,
     projectedWeight: regression ? regression.predict(projectedDate) : null,
     projectedDate,
-    weekly: weeklyAverages(raw)
+    weekly: weeklyAverages(raw),
+    trendConfidence: {
+      dataSufficiencyScore,
+      volatilityScore,
+      volatilityKg,
+      volatilityLabel,
+      measurementCount,
+      spanDays
+    }
+  };
+}
+
+function regressionRateForRange(smoothed, startDate, endDate) {
+  const points = smoothed.filter(point => point.date >= startDate && point.date <= endDate);
+  const regression = linearRegression(points);
+  return regression ? regression.slope * 7 : null;
+}
+
+export function analyseDietPhase(weightAnalysis, maintenanceAnalysis) {
+  const currentWeight = weightAnalysis.current;
+  const latestDate = weightAnalysis.latestRaw?.date;
+  const weeklyRate = weightAnalysis.weeklyRate;
+  const sufficiency = weightAnalysis.trendConfidence?.dataSufficiencyScore ?? 0;
+
+  if (currentWeight == null || latestDate == null || weeklyRate == null) {
+    return {
+      key: "maintain",
+      label: "Maintain",
+      confidence: "low",
+      description: "More weight data is needed before the current phase can be estimated.",
+      relativeWeeklyRate: null
+    };
+  }
+
+  const recentStart = addDays(latestDate, -10);
+  const priorStart = addDays(latestDate, -38);
+  const priorEnd = addDays(latestDate, -11);
+  const recentRate = regressionRateForRange(weightAnalysis.smoothed, recentStart, latestDate) ?? weeklyRate;
+  const priorRate = regressionRateForRange(weightAnalysis.smoothed, priorStart, priorEnd);
+  const relativeWeeklyRate = currentWeight > 0 ? recentRate / currentWeight * 100 : 0;
+  const priorReferenceWeight = weightAnalysis.smoothed.find(point => point.date >= priorStart)?.value ?? currentWeight;
+  const priorRelativeRate = priorRate == null || priorReferenceWeight <= 0 ? null : priorRate / priorReferenceWeight * 100;
+
+  const maintenance = maintenanceAnalysis.current?.estimate;
+  const averageIntake = maintenanceAnalysis.current?.averageIntake;
+  const calorieCoverage = maintenanceAnalysis.current?.calorieCoverage ?? 0;
+  const energyGap = Number.isFinite(maintenance) && Number.isFinite(averageIntake)
+    ? averageIntake - maintenance
+    : null;
+  const calorieTimeline = maintenanceAnalysis.calorieTimeline ?? [];
+  const recentCalories = calorieTimeline.filter(entry => entry.date >= recentStart && entry.date <= latestDate).map(entry => entry.value);
+  const priorCalories = calorieTimeline.filter(entry => entry.date >= priorStart && entry.date <= priorEnd).map(entry => entry.value);
+  const recentCalorieAverage = mean(recentCalories);
+  const priorCalorieAverage = mean(priorCalories);
+  const calorieIncrease = recentCalorieAverage != null && priorCalorieAverage != null
+    ? recentCalorieAverage - priorCalorieAverage
+    : null;
+  const recentCalorieCoverage = recentCalories.length / 11;
+  const nearMaintenance = energyGap != null && Math.abs(energyGap) <= 175;
+  const stableNow = Math.abs(relativeWeeklyRate) < 0.09;
+  const priorCut = priorRelativeRate != null && priorRelativeRate <= -0.12;
+  const priorBulk = priorRelativeRate != null && priorRelativeRate >= 0.10;
+  const confidence = sufficiency >= 72 ? "high" : sufficiency >= 45 ? "medium" : "low";
+
+  if (
+    priorCut
+    && stableNow
+    && recentCalorieCoverage >= 0.45
+    && (nearMaintenance || (calorieIncrease != null && calorieIncrease >= 125))
+  ) {
+    return {
+      key: "diet-break",
+      label: "Diet break",
+      confidence,
+      description: "Weight loss has paused while recent intake moved back toward maintenance after a cutting trend.",
+      relativeWeeklyRate
+    };
+  }
+
+  if ((priorCut || priorBulk) && stableNow && (!nearMaintenance || calorieCoverage < 0.45)) {
+    return {
+      key: "deload",
+      label: "Deload",
+      confidence: "low",
+      description: "A recent gaining or losing phase has paused. This is only a recovery-pattern estimate because training load is not tracked.",
+      relativeWeeklyRate
+    };
+  }
+
+  if (relativeWeeklyRate <= -0.10 || (energyGap != null && energyGap <= -175)) {
+    return {
+      key: "cut",
+      label: "Cut",
+      confidence,
+      description: "The recent weight trend and energy balance indicate a calorie-deficit phase.",
+      relativeWeeklyRate
+    };
+  }
+
+  if (relativeWeeklyRate >= 0.09 || (energyGap != null && energyGap >= 175)) {
+    return {
+      key: "bulk",
+      label: "Bulk",
+      confidence,
+      description: "The recent weight trend and energy balance indicate a calorie-surplus phase.",
+      relativeWeeklyRate
+    };
+  }
+
+  return {
+    key: "maintain",
+    label: "Maintain",
+    confidence,
+    description: "Recent weight velocity is close to stable and intake is not clearly above or below maintenance.",
+    relativeWeeklyRate
   };
 }
 

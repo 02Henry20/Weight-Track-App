@@ -24,7 +24,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   chartScaleMode: "auto",
   chartWeightMin: "",
   chartWeightMax: "",
-  energyDensityKcalPerKg: 7700
+  energyDensityKcalPerKg: 7700,
+  trendConfidenceView: "on"
 });
 
 export const DEFAULT_GOALS = Object.freeze({
@@ -292,6 +293,7 @@ export function saveSettings(settings) {
     chartWeightMin: settings.chartWeightMin === "" ? "" : Number(settings.chartWeightMin),
     chartWeightMax: settings.chartWeightMax === "" ? "" : Number(settings.chartWeightMax),
     energyDensityKcalPerKg: Number(settings.energyDensityKcalPerKg),
+    trendConfidenceView: settings.trendConfidenceView === "off" ? "off" : "on",
     updatedAt: serverTimestamp()
   });
 }
@@ -316,8 +318,8 @@ export function isUsingCacheOnly() {
 
 export function exportState() {
   return {
-    format: "mass-track-backup",
-    version: 1,
+    format: "calstat-backup",
+    version: 2,
     exportedAt: new Date().toISOString(),
     weights: state.weights.map(({ date, weight }) => ({ date, weight })),
     bodyEntries: state.bodyEntries.map(({ date, bodyFat, weight }) => ({ date, bodyFat, weight })),
@@ -329,8 +331,8 @@ export function exportState() {
 
 export async function importState(backup) {
   const user = requireUser();
-  if (!backup || backup.format !== "mass-track-backup") {
-    throw new Error("This is not a valid KiloPilot backup.");
+  if (!backup || !["calstat-backup", "mass-track-backup"].includes(backup.format)) {
+    throw new Error("This is not a valid CalStat backup.");
   }
 
   const operations = [];

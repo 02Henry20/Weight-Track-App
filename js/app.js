@@ -26,6 +26,7 @@ import {
 } from "./store.js";
 import {
   analyseBody,
+  analyseDietPhase,
   analyseGoals,
   analyseMaintenance,
   analyseWeight,
@@ -443,7 +444,8 @@ function submitSettings(event) {
     chartScaleMode: document.querySelector("#setting-chart-scale-mode").value,
     chartWeightMin: document.querySelector("#setting-chart-weight-min").value,
     chartWeightMax: document.querySelector("#setting-chart-weight-max").value,
-    energyDensityKcalPerKg: document.querySelector("#setting-energy-density").value
+    energyDensityKcalPerKg: document.querySelector("#setting-energy-density").value,
+    trendConfidenceView: document.querySelector("#setting-trend-confidence").value
   };
   const message = document.querySelector("#settings-message");
 
@@ -585,10 +587,25 @@ function renderOverview(analyses) {
     deltaElement.className = "metric-delta neutral";
   }
 
-  setText("#goal-progress", goals.progress == null ? "—" : `${Math.round(goals.progress * 100)}%`);
+  const goalDifference = goals.difference;
+  const goalDistanceValue = document.querySelector("#goal-distance-value");
+  const goalDistanceLabel = document.querySelector("#goal-distance-label");
+  const goalDistanceFill = document.querySelector("#goal-distance-fill");
+  if (goalDifference == null) {
+    goalDistanceValue.textContent = "—";
+    goalDistanceLabel.textContent = "Set a target weight";
+    goalDistanceFill.style.width = "0%";
+  } else if (Math.abs(goalDifference) <= 0.05 || (goals.progress ?? 0) >= 0.999) {
+    goalDistanceValue.textContent = "Reached";
+    goalDistanceLabel.textContent = "Target achieved";
+    goalDistanceFill.style.width = "100%";
+  } else {
+    goalDistanceValue.textContent = `${Math.abs(goalDifference).toFixed(1)} kg`;
+    goalDistanceLabel.textContent = goalDifference < 0 ? "left to lose" : "left to gain";
+    goalDistanceFill.style.width = `${Math.round((goals.progress ?? 0) * 100)}%`;
+  }
   setText("#goal-target-weight", goals.targetWeight == null ? "—" : `${goals.targetWeight.toFixed(1)} kg`);
   setText("#goal-eta", goals.etaDate ? formatLongDate(goals.etaDate) : "Not enough trend");
-  document.querySelector("#goal-ring").style.setProperty("--goal-progress-angle", `${Math.round((goals.progress ?? 0) * 360)}deg`);
 
   setText("#insight-title", insight.title);
   setText("#insight-text", insight.text);
@@ -629,11 +646,30 @@ function renderLog() {
 }
 
 function renderTrends(analyses) {
-  const { weight, maintenance } = analyses;
+  const { weight, maintenance, dietPhase } = analyses;
   setText("#trend-window-badge", `${state.settings.trendWindowDays}-day model · ${state.settings.predictionMonths}mo forecast`);
   setText("#trend-current", weight.current == null ? "—" : `${weight.current.toFixed(1)} kg`);
   setText("#trend-rate", weight.weeklyRate == null ? "—" : `${formatSigned(weight.weeklyRate, 2)} kg/week`);
   setText("#trend-projected", weight.projectedWeight == null ? "—" : `${weight.projectedWeight.toFixed(1)} kg`);
+
+  const phaseBadge = document.querySelector("#diet-phase-badge");
+  phaseBadge.className = `diet-phase-badge phase-${dietPhase.key}`;
+  phaseBadge.textContent = dietPhase.label;
+  setText("#diet-phase-copy", dietPhase.description);
+
+  const trendConfidenceCard = document.querySelector("#trend-confidence-card");
+  const showTrendConfidence = state.settings.trendConfidenceView !== "off";
+  trendConfidenceCard.hidden = !showTrendConfidence;
+  if (showTrendConfidence) {
+    const confidence = weight.trendConfidence;
+    document.querySelector("#trend-sufficiency-fill").style.width = `${confidence.dataSufficiencyScore}%`;
+    document.querySelector("#trend-volatility-fill").style.width = `${confidence.volatilityScore ?? 0}%`;
+    setText("#trend-sufficiency-score", `${confidence.dataSufficiencyScore}%`);
+    setText("#trend-volatility-score", confidence.volatilityScore == null ? "—" : `${confidence.volatilityScore}%`);
+    setText("#trend-confidence-copy", confidence.volatilityScore == null
+      ? `${confidence.measurementCount} measurement${confidence.measurementCount === 1 ? "" : "s"} in the selected trend window. Add at least three readings to score volatility.`
+      : `${confidence.measurementCount} measurements across ${confidence.spanDays} days · ${confidence.volatilityLabel.toLowerCase()} volatility · ±${confidence.volatilityKg.toFixed(2)} kg around the trend.`);
+  }
 
   if (maintenance.current?.estimate != null) {
     setConfidenceBadge("#maintenance-confidence", maintenance.current.confidence, maintenance.current.confidenceScore);
@@ -655,16 +691,55 @@ function renderTrends(analyses) {
       : "Low coverage. Add measurements across multiple weeks before relying on the maintenance estimate.");
 }
 
+function statusToneForCategory(category, type) {
+  const value = String(category ?? "").toLowerCase();
+  if (type === "bodyFat") {
+    if (value.includes("athletic")) return "athletic";
+    if (value.includes("fitness")) return "good";
+    if (value.includes("essential")) return "warning";
+    if (value.includes("high")) return "danger";
+    return "neutral";
+  }
+  if (type === "bmi") {
+    if (value.includes("healthy")) return "good";
+    if (value.includes("obesity")) return "danger";
+    if (value.includes("underweight") || value.includes("overweight")) return "warning";
+    return "neutral";
+  }
+  if (value.includes("exceptional") || value.includes("highly muscular")) return "elite";
+  if (value.includes("athletic")) return "athletic";
+  if (value.includes("above average")) return "good";
+  if (value.includes("below")) return "warning";
+  return "neutral";
+}
+
+function applyMetricStatus(selector, tone) {
+  const element = document.querySelector(selector);
+  if (!element) return;
+  const tones = ["neutral", "good", "athletic", "elite", "warning", "danger"];
+  element.classList.remove(...tones.map(item => `status-${item}`));
+  element.classList.add(`status-${tone}`);
+  const card = element.closest(".metric-card");
+  if (card) {
+    card.classList.remove(...tones.map(item => `metric-status-${item}`));
+    card.classList.add(`metric-status-${tone}`);
+  }
+}
+
 function renderBody(analyses) {
   const body = analyses.body;
   setText("#body-latest-fat", body.latest ? `${body.latest.bodyFat.toFixed(1)}%` : "—");
   setText("#body-fat-category", body.latest ? body.bodyFatCategory : "No composition data");
   setText("#body-lean-mass", body.latest ? `${body.latest.leanMass.toFixed(1)} kg` : "—");
   setText("#body-bmi", body.currentBmi == null ? "—" : body.currentBmi.toFixed(1));
-  setText("#body-bmi-category", body.currentBmi == null ? "Under 20 low · 20-25 reference · over 25 high" : `${body.bmiCategory} · <20 low · >25 high`);
+  setText("#body-bmi-category", body.currentBmi == null ? "Under 20 low · 20-25 reference · over 25 high" : body.bmiCategory);
   setText("#body-ffmi", body.latest?.normalizedFfmi == null ? "—" : body.latest.normalizedFfmi.toFixed(1));
   setText("#body-ffmi-category", body.latest?.normalizedFfmi == null ? "Needs body-fat data" : body.ffmiCategory);
   setText("#map-metric-name", state.settings.mapMetric === "bmi" ? "BMI" : "normalized FFMI");
+
+  applyMetricStatus("#body-fat-category", body.latest ? statusToneForCategory(body.bodyFatCategory, "bodyFat") : "neutral");
+  applyMetricStatus("#body-bmi-category", body.currentBmi == null ? "neutral" : statusToneForCategory(body.bmiCategory, "bmi"));
+  applyMetricStatus("#body-ffmi-category", body.latest?.normalizedFfmi == null ? "neutral" : statusToneForCategory(body.ffmiCategory, "ffmi"));
 }
 
 function renderGoals(analyses) {
@@ -702,6 +777,7 @@ function renderSettings() {
     document.querySelector("#setting-chart-weight-min").value = state.settings.chartWeightMin ?? "";
     document.querySelector("#setting-chart-weight-max").value = state.settings.chartWeightMax ?? "";
     document.querySelector("#setting-energy-density").value = String(state.settings.energyDensityKcalPerKg);
+    document.querySelector("#setting-trend-confidence").value = state.settings.trendConfidenceView === "off" ? "off" : "on";
   }
   document.querySelector("#chart-fixed-range-fields")?.classList.toggle("hidden", state.settings.chartScaleMode !== "fixed");
 
@@ -713,10 +789,11 @@ function renderSettings() {
 function calculateAnalyses() {
   const weight = analyseWeight(state.weights, state.settings);
   const maintenance = analyseMaintenance(state.weights, state.calorieEntries, state.settings);
+  const dietPhase = analyseDietPhase(weight, maintenance);
   const body = analyseBody(state.bodyEntries, state.weights, state.settings);
   const goals = analyseGoals(weight, maintenance, state.goals);
   const insight = buildInsight(weight, maintenance, body, goals);
-  return { weight, maintenance, body, goals, insight };
+  return { weight, maintenance, dietPhase, body, goals, insight };
 }
 
 function renderActiveCharts() {
@@ -771,7 +848,7 @@ function exportBackup() {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `mass-track-backup-${todayString()}.json`;
+  anchor.download = `calstat-backup-${todayString()}.json`;
   anchor.click();
   URL.revokeObjectURL(url);
   showToast("Backup exported", "The JSON file contains your measurements, goals and settings.");

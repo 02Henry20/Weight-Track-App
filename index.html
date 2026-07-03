@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="./styles/components.css">
   <link rel="stylesheet" href="./styles/layout.css">
   <link rel="stylesheet" href="./styles/responsive.css">
-  <title>KiloPilot</title>
+  <title>CalStat</title>
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -24,7 +24,7 @@
         <span></span><span></span><span></span>
       </div>
       <p class="eyebrow">BODY DATA · CLEAR SIGNAL</p>
-      <h1>Kilo<span>Pilot</span></h1>
+      <h1>Cal<span>Stat</span></h1>
       <p class="auth-intro">
         Track weight, body composition and calorie intake. Keep working offline and synchronize securely through Firebase.
       </p>
@@ -63,7 +63,7 @@
       <div class="sidebar-brand">
         <div class="brand-mark small" aria-hidden="true"><span></span><span></span><span></span></div>
         <div>
-          <strong>Kilo<span>Pilot</span></strong>
+          <strong>Cal<span>Stat</span></strong>
           <small>Personal analytics</small>
         </div>
       </div>
@@ -166,7 +166,14 @@
                 <div><p class="eyebrow">TARGET</p><h3>Weight goal</h3></div>
                 <button class="icon-button" data-go-view="goals" type="button" aria-label="Open goals">→</button>
               </div>
-              <div class="goal-ring" id="goal-ring"><div><strong id="goal-progress">—</strong><span>progress</span></div></div>
+              <div class="goal-distance" aria-label="Distance to target">
+                <div class="goal-distance-copy">
+                  <strong id="goal-distance-value">—</strong>
+                  <span id="goal-distance-label">Set a target weight</span>
+                </div>
+                <div class="goal-distance-track" aria-hidden="true"><span id="goal-distance-fill"></span></div>
+                <div class="goal-distance-ends"><span>Starting point</span><span>Target</span></div>
+              </div>
               <div class="goal-details">
                 <div><span>Target</span><strong id="goal-target-weight">—</strong></div>
                 <div><span>Projected ETA</span><strong id="goal-eta">—</strong></div>
@@ -176,9 +183,9 @@
             <article class="quick-actions glass-panel reveal-card">
               <div class="panel-heading compact-heading"><div><p class="eyebrow">QUICK ENTRY</p><h3>Log data</h3></div></div>
               <div class="quick-action-grid">
-                <button data-open-modal="weight" type="button"><span>＋</span><strong>Weight</strong><small>Daily measurement</small></button>
-                <button data-open-modal="body" type="button"><span>％</span><strong>Body fat</strong><small>Composition check</small></button>
-                <button data-open-modal="calories" type="button"><span>⚡</span><strong>Calories</strong><small>Daily or weekly avg</small></button>
+                <button data-open-modal="weight" type="button"><span class="action-symbol action-weight">⚖</span><strong>Weight</strong><small>Daily measurement</small></button>
+                <button data-open-modal="body" type="button"><span class="action-symbol action-body">◑</span><strong>Body fat</strong><small>Composition check</small></button>
+                <button data-open-modal="calories" type="button"><span class="action-symbol action-calories">⚡</span><strong>Calories</strong><small>Daily or weekly avg</small></button>
               </div>
             </article>
 
@@ -196,13 +203,13 @@
 
           <div class="entry-type-grid">
             <button class="entry-type-card glass-panel" data-open-modal="weight" type="button">
-              <span class="entry-symbol">＋</span><div><strong>Add weight</strong><small>One daily measurement · 0.1 kg steps</small></div><span>→</span>
+              <span class="entry-symbol entry-symbol-weight">⚖</span><div><strong>Add weight</strong><small>One daily measurement · 0.1 kg steps</small></div><span>→</span>
             </button>
             <button class="entry-type-card glass-panel" data-open-modal="body" type="button">
-              <span class="entry-symbol">％</span><div><strong>Add body composition</strong><small>Body-fat percentage and associated weight</small></div><span>→</span>
+              <span class="entry-symbol entry-symbol-body">◑</span><div><strong>Add body composition</strong><small>Body-fat percentage and associated weight</small></div><span>→</span>
             </button>
             <button class="entry-type-card glass-panel" data-open-modal="calories" type="button">
-              <span class="entry-symbol">⚡</span><div><strong>Add calorie intake</strong><small>Per day or weekly kcal/day average</small></div><span>→</span>
+              <span class="entry-symbol entry-symbol-calories">⚡</span><div><strong>Add calorie intake</strong><small>Per day or weekly kcal/day average</small></div><span>→</span>
             </button>
           </div>
 
@@ -226,8 +233,8 @@
           <div class="analytics-grid">
             <article class="chart-card glass-panel span-2">
               <div class="panel-heading">
-                <div><p class="eyebrow">WEIGHT EVOLUTION</p><h3>Measured, smoothed and predicted</h3></div>
-                <span id="trend-window-badge" class="metric-tag"></span>
+                <div><p class="eyebrow">WEIGHT EVOLUTION</p><h3>Measured, smoothed and predicted</h3><p id="diet-phase-copy" class="trend-phase-copy">Current phase is estimated from recent weight velocity and calorie balance.</p></div>
+                <div class="trend-header-meta"><span id="diet-phase-badge" class="diet-phase-badge phase-maintain">Maintain</span><span id="trend-window-badge" class="metric-tag"></span></div>
               </div>
               <div class="chart-wrap tall"><canvas id="trend-weight-chart"></canvas><div class="chart-empty" data-empty-for="trend-weight-chart">Add at least two weight measurements.</div></div>
             </article>
@@ -236,6 +243,20 @@
               <div><span>Current smoothed weight</span><strong id="trend-current">—</strong></div>
               <div><span>Weekly velocity</span><strong id="trend-rate">—</strong></div>
               <div><span>Projected weight</span><strong id="trend-projected">—</strong></div>
+            </article>
+
+            <article id="trend-confidence-card" class="trend-confidence-card glass-panel">
+              <p class="eyebrow">TREND CONFIDENCE</p>
+              <h3>Signal readiness</h3>
+              <div class="trend-score-block">
+                <div class="trend-score-heading"><span>Data sufficiency</span><strong id="trend-sufficiency-score">0%</strong></div>
+                <div class="trend-score-meter sufficiency"><span id="trend-sufficiency-fill"></span></div>
+              </div>
+              <div class="trend-score-block">
+                <div class="trend-score-heading"><span>Volatility</span><strong id="trend-volatility-score">—</strong></div>
+                <div class="trend-score-meter volatility"><span id="trend-volatility-fill"></span></div>
+              </div>
+              <p id="trend-confidence-copy" class="trend-confidence-copy">Add measurements across the selected window to assess trend stability.</p>
             </article>
 
             <article class="chart-card glass-panel span-2">
@@ -281,7 +302,7 @@
               <div class="chart-wrap tall"><canvas id="body-composition-chart"></canvas><div class="chart-empty" data-empty-for="body-composition-chart">Add at least two body-composition entries.</div></div>
             </article>
 
-            <article class="chart-card glass-panel span-2">
+            <article class="chart-card glass-panel span-2 physique-map-card">
               <div class="panel-heading">
                 <div><p class="eyebrow">PHYSIQUE MAP</p><h3>Body fat vs <span id="map-metric-name">FFMI</span></h3></div>
                 <span class="metric-tag">Reference view</span>
@@ -337,6 +358,7 @@
 
                 <label class="field"><span>Weight smoothing period</span><select id="setting-smoothing"><option value="1">No smoothing</option><option value="3">3 days</option><option value="7">7 days</option><option value="14">14 days</option></select></label>
                 <label class="field"><span>Trend analysis window</span><select id="setting-trend-window"><option value="14">14 days</option><option value="28">28 days</option><option value="42">42 days</option><option value="60">60 days</option><option value="90">90 days</option></select></label>
+                <label class="field"><span>Trend confidence view</span><select id="setting-trend-confidence"><option value="on">Show data sufficiency and volatility</option><option value="off">Hide confidence view</option></select></label>
                 <label class="field"><span>Maintenance estimation window</span><select id="setting-maintenance-window"><option value="14">14 days</option><option value="21">21 days</option><option value="28">28 days</option><option value="42">42 days</option><option value="60">60 days</option></select></label>
                 <label class="field"><span>Prediction horizon</span><select id="setting-prediction-months"><option value="1">1 month</option><option value="2">2 months</option><option value="3">3 months</option><option value="6">6 months</option><option value="12">12 months</option></select></label>
                 <label class="field"><span>Chart history</span><select id="setting-chart-range"><option value="30">30 days</option><option value="90">90 days</option><option value="180">6 months</option><option value="365">1 year</option><option value="0">All data</option></select></label>

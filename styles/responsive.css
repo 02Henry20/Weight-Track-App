@@ -87,7 +87,9 @@
 
   .mobile-nav button span {
     color: var(--blue-bright);
-    font-size: 1.05rem;
+    font-size: 1.48rem;
+    font-weight: 780;
+    line-height: 1;
   }
 
   .mobile-nav button small {
@@ -108,7 +110,8 @@
   .goal-card,
   .quick-actions,
   .metric-stack,
-  .data-quality-card {
+  .data-quality-card,
+  .trend-confidence-card {
     grid-column: 1 !important;
   }
 

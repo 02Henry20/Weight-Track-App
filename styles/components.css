@@ -368,6 +368,7 @@ select:disabled {
 .history-card,
 .metric-stack,
 .data-quality-card,
+.trend-confidence-card,
 .settings-card,
 .goal-form-card,
 .goal-forecast-card {
@@ -382,6 +383,7 @@ select:disabled {
 .history-card:hover,
 .metric-stack:hover,
 .data-quality-card:hover,
+.trend-confidence-card:hover,
 .settings-card:hover,
 .goal-form-card:hover,
 .goal-forecast-card:hover {
@@ -460,48 +462,6 @@ select:disabled {
   background: rgba(var(--accent-rgb), 0.1);
   color: var(--text);
   transform: translateY(-1px);
-}
-
-.goal-ring {
-  --goal-progress-angle: 0deg;
-  position: relative;
-  display: grid;
-  width: 176px;
-  height: 176px;
-  margin: 22px auto;
-  place-items: center;
-  border-radius: 999px;
-  background: conic-gradient(var(--blue) var(--goal-progress-angle), rgba(255, 255, 255, 0.07) 0);
-  box-shadow: 0 0 45px rgba(var(--accent-rgb), 0.16);
-}
-
-.goal-ring::before {
-  position: absolute;
-  width: 137px;
-  height: 137px;
-  border: 1px solid var(--line);
-  border-radius: inherit;
-  background: #0a1727;
-  content: "";
-}
-
-:root[data-theme="light"] .goal-ring::before {
-  background: #ffffff;
-}
-
-.goal-ring > div {
-  position: relative;
-  display: grid;
-  text-align: center;
-}
-
-.goal-ring strong {
-  font-size: 2rem;
-}
-
-.goal-ring span {
-  color: var(--muted);
-  font-size: 0.74rem;
 }
 
 .goal-details,
@@ -1146,3 +1106,246 @@ select:disabled {
 @keyframes modal-in { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: none; } }
 @keyframes toast-in { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
 @keyframes reveal-card { to { opacity: 1; transform: none; } }
+
+/* CalStat analytics additions */
+.goal-distance {
+  display: grid;
+  gap: 13px;
+  margin: 24px 0 22px;
+  padding: 18px;
+  border: 1px solid rgba(var(--accent-rgb), 0.22);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(var(--accent-2-rgb), 0.13), transparent 60%),
+    rgba(var(--accent-rgb), 0.055);
+}
+
+.goal-distance-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.goal-distance-copy strong {
+  color: var(--blue-bright);
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  line-height: 0.95;
+}
+
+.goal-distance-copy span,
+.goal-distance-ends {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.goal-distance-track {
+  height: 13px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.goal-distance-track span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue), var(--cyan), var(--green));
+  box-shadow: 0 0 18px rgba(var(--accent-2-rgb), 0.35);
+  transition: width 500ms cubic-bezier(.2,.8,.2,1);
+}
+
+.goal-distance-ends {
+  display: flex;
+  justify-content: space-between;
+}
+
+.action-symbol {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  font-size: 1.8rem !important;
+  font-weight: 850;
+}
+
+.action-weight,
+.entry-symbol-weight {
+  border-color: rgba(var(--accent-2-rgb), 0.28);
+  background: linear-gradient(145deg, rgba(var(--accent-rgb), 0.18), rgba(var(--accent-2-rgb), 0.13));
+  color: var(--cyan) !important;
+  text-shadow: 0 0 16px rgba(var(--accent-2-rgb), 0.45);
+}
+
+.action-body,
+.entry-symbol-body {
+  border-color: rgba(148, 117, 255, 0.34);
+  background: linear-gradient(145deg, rgba(148, 117, 255, 0.2), rgba(255, 90, 111, 0.08));
+  color: var(--purple) !important;
+  text-shadow: 0 0 16px rgba(148, 117, 255, 0.42);
+}
+
+.action-calories,
+.entry-symbol-calories {
+  border-color: rgba(240, 187, 69, 0.34);
+  background: linear-gradient(145deg, rgba(240, 187, 69, 0.22), rgba(240, 111, 69, 0.08));
+  color: var(--yellow) !important;
+  text-shadow: 0 0 16px rgba(240, 187, 69, 0.42);
+}
+
+.entry-symbol {
+  border: 1px solid transparent;
+}
+
+.trend-header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.trend-phase-copy {
+  max-width: 670px;
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.diet-phase-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+}
+
+.diet-phase-badge::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 10px currentColor;
+  content: "";
+}
+
+.phase-cut { color: var(--cyan); border-color: rgba(var(--accent-2-rgb), 0.3); background: rgba(var(--accent-2-rgb), 0.08); }
+.phase-maintain { color: var(--green); border-color: rgba(53, 208, 127, 0.3); background: rgba(53, 208, 127, 0.08); }
+.phase-bulk { color: var(--purple); border-color: rgba(148, 117, 255, 0.3); background: rgba(148, 117, 255, 0.08); }
+.phase-deload { color: var(--yellow); border-color: rgba(240, 187, 69, 0.3); background: rgba(240, 187, 69, 0.08); }
+.phase-diet-break { color: var(--blue-bright); border-color: rgba(var(--accent-rgb), 0.3); background: rgba(var(--accent-rgb), 0.08); }
+
+.trend-confidence-card {
+  display: grid;
+  align-content: center;
+  gap: 17px;
+  padding: 24px;
+  border-radius: var(--radius-xl);
+}
+
+.trend-confidence-card h3 {
+  margin-top: -11px;
+}
+
+.trend-score-block {
+  display: grid;
+  gap: 8px;
+}
+
+.trend-score-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.trend-score-heading span {
+  color: var(--muted-strong);
+  font-size: 0.82rem;
+  font-weight: 720;
+}
+
+.trend-score-heading strong {
+  font-size: 1.05rem;
+}
+
+.trend-score-meter {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.trend-score-meter span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 500ms cubic-bezier(.2,.8,.2,1);
+}
+
+.trend-score-meter.sufficiency span {
+  background: linear-gradient(90deg, var(--blue), var(--cyan), var(--green));
+}
+
+.trend-score-meter.volatility span {
+  background: linear-gradient(90deg, var(--green), var(--yellow), var(--red));
+}
+
+.trend-confidence-copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.77rem;
+  line-height: 1.5;
+}
+
+.metric-card small[id$="category"] {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-weight: 820;
+  line-height: 1.25;
+}
+
+.status-neutral { color: var(--muted); }
+.status-good { color: #7be6ad; border-color: rgba(53, 208, 127, 0.24) !important; background: rgba(53, 208, 127, 0.08); }
+.status-athletic { color: var(--cyan); border-color: rgba(var(--accent-2-rgb), 0.3) !important; background: linear-gradient(90deg, rgba(var(--accent-2-rgb), 0.13), rgba(var(--accent-rgb), 0.07)); text-shadow: 0 0 13px rgba(var(--accent-2-rgb), 0.35); }
+.status-elite { color: #c6b8ff; border-color: rgba(148, 117, 255, 0.32) !important; background: linear-gradient(90deg, rgba(148, 117, 255, 0.15), rgba(var(--accent-2-rgb), 0.06)); text-shadow: 0 0 14px rgba(148, 117, 255, 0.42); }
+.status-warning { color: #ffd782; border-color: rgba(240, 187, 69, 0.28) !important; background: rgba(240, 187, 69, 0.08); }
+.status-danger { color: #ff9baa; border-color: rgba(255, 90, 111, 0.28) !important; background: rgba(255, 90, 111, 0.09); }
+
+.metric-status-good { border-color: rgba(53, 208, 127, 0.24); }
+.metric-status-athletic { border-color: rgba(var(--accent-2-rgb), 0.3); box-shadow: inset 0 0 34px rgba(var(--accent-2-rgb), 0.045); }
+.metric-status-elite { border-color: rgba(148, 117, 255, 0.3); box-shadow: inset 0 0 38px rgba(148, 117, 255, 0.055); }
+.metric-status-warning { border-color: rgba(240, 187, 69, 0.22); }
+.metric-status-danger { border-color: rgba(255, 90, 111, 0.25); }
+
+.physique-map-card .plot-note {
+  margin-top: -2px;
+}
+
+@media (min-width: 901px) {
+  .metric-stack span {
+    font-size: 0.95rem;
+    font-weight: 690;
+  }
+
+  .metric-stack strong {
+    font-size: 1.48rem;
+  }
+
+  .metric-stack > div {
+    padding: 21px 0;
+  }
+}
