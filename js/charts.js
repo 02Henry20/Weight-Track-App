@@ -413,7 +413,7 @@ export function drawBodyCompositionChart(canvas, bodyAnalysis) {
   if (!available) return;
 
   const { context, width, height } = prepareCanvas(canvas);
-  const area = chartArea(width, height, { left: 58, right: 70, bottom: 38 });
+  const area = chartArea(width, height, { left: 58, right: 112, bottom: 38 });
   const [minTime, maxTime] = dateExtent([entries]);
   const leanValues = entries.map(point => point.leanMass);
   const fatMassValues = entries.map(point => point.fatMass);
@@ -444,15 +444,15 @@ export function drawBodyCompositionChart(canvas, bodyAnalysis) {
     context.fillStyle = COLORS.yellow;
     context.fillText(`${fatMassValue.toFixed(1)} kg`, area.right + 8, y - 6);
     context.fillStyle = COLORS.purple;
-    context.fillText(`${fatPercentValue.toFixed(1)}%`, area.right + 8, y + 7);
+    context.fillText(`${fatPercentValue.toFixed(1)}%`, area.right + 64, y - 6);
   }
   context.textAlign = "left";
   context.fillStyle = COLORS.cyan;
   context.fillText("Lean kg", area.left, area.top - 9);
   context.fillStyle = COLORS.yellow;
-  context.fillText("Fat kg", area.right - 44, area.top - 9);
+  context.fillText("Fat kg", area.right + 8, area.top - 18);
   context.fillStyle = COLORS.purple;
-  context.fillText("BF%", area.right + 28, area.top - 9);
+  context.fillText("BF%", area.right + 64, area.top - 18);
   context.restore();
 
   const leanPoints = drawLine(context, entries.map(point => ({ date: point.date, value: point.leanMass })), xScale, leanScale, {
@@ -487,18 +487,18 @@ export function drawBodyCompositionChart(canvas, bodyAnalysis) {
 function bodyFatBands(referenceSex) {
   return referenceSex === "female"
     ? [
-        { min: 5, max: 14, color: "rgba(240, 187, 69, 0.09)", label: "Essential" },
-        { min: 14, max: 21, color: "rgba(50, 215, 232, 0.08)", label: "Athletic" },
-        { min: 21, max: 25, color: "rgba(53, 208, 127, 0.09)", label: "Fitness" },
-        { min: 25, max: 32, color: "rgba(47, 135, 255, 0.07)", label: "Average" },
-        { min: 32, max: 45, color: "rgba(255, 90, 111, 0.07)", label: "High" }
+        { min: 5, max: 14, color: "rgba(240, 187, 69, 0.16)", label: "Essential" },
+        { min: 14, max: 21, color: "rgba(50, 215, 232, 0.14)", label: "Athletic" },
+        { min: 21, max: 25, color: "rgba(53, 208, 127, 0.16)", label: "Fitness" },
+        { min: 25, max: 32, color: "rgba(47, 135, 255, 0.13)", label: "Average" },
+        { min: 32, max: 45, color: "rgba(255, 90, 111, 0.16)", label: "High fat" }
       ]
     : [
-        { min: 2, max: 6, color: "rgba(240, 187, 69, 0.09)", label: "Essential" },
-        { min: 6, max: 14, color: "rgba(50, 215, 232, 0.08)", label: "Athletic" },
-        { min: 14, max: 18, color: "rgba(53, 208, 127, 0.09)", label: "Fitness" },
-        { min: 18, max: 25, color: "rgba(47, 135, 255, 0.07)", label: "Average" },
-        { min: 25, max: 40, color: "rgba(255, 90, 111, 0.07)", label: "High" }
+        { min: 2, max: 6, color: "rgba(240, 187, 69, 0.16)", label: "Essential" },
+        { min: 6, max: 14, color: "rgba(50, 215, 232, 0.14)", label: "Athletic" },
+        { min: 14, max: 18, color: "rgba(53, 208, 127, 0.16)", label: "Fitness" },
+        { min: 18, max: 25, color: "rgba(47, 135, 255, 0.13)", label: "Average" },
+        { min: 25, max: 40, color: "rgba(255, 90, 111, 0.16)", label: "High fat" }
       ];
 }
 
@@ -532,7 +532,7 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
   if (!available) return;
 
   const { context, width, height } = prepareCanvas(canvas);
-  const area = chartArea(width, height, { left: 88, right: 20, top: 24, bottom: 34 });
+  const area = chartArea(width, height, { left: 88, right: 20, top: 24, bottom: 52 });
   const xBands = bodyFatBands(settings.referenceSex);
   const yBands = metricBands(metric, settings.referenceSex);
   const xMin = xBands[0].min;
@@ -557,7 +557,7 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
     context.fillStyle = COLORS.text;
     context.font = "10px system-ui, sans-serif";
     context.textAlign = "center";
-    if (right - left > 47) context.fillText(band.label, (left + right) / 2, area.bottom + 22);
+    if (right - left > 47) context.fillText(band.label, (left + right) / 2, area.bottom + 15);
   }
   context.beginPath();
   context.moveTo(area.right, area.top);
@@ -565,11 +565,11 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
   context.stroke();
 
   const rowColors = [
-    "rgba(50, 215, 232, 0.045)",
-    "rgba(53, 208, 127, 0.05)",
-    "rgba(240, 187, 69, 0.045)",
-    "rgba(47, 135, 255, 0.04)",
-    "rgba(148, 117, 255, 0.045)"
+    "rgba(240, 187, 69, 0.06)",
+    "rgba(53, 208, 127, 0.08)",
+    "rgba(50, 215, 232, 0.07)",
+    "rgba(47, 135, 255, 0.06)",
+    "rgba(148, 117, 255, 0.07)"
   ];
   context.strokeStyle = "rgba(142, 161, 185, 0.2)";
   context.lineWidth = 1;
@@ -596,6 +596,17 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
   context.font = "11px system-ui, sans-serif";
   context.textAlign = "center";
   context.fillText("Body fat %", (area.left + area.right) / 2, height - 8);
+  context.font = "10px system-ui, sans-serif";
+  context.textAlign = "left";
+  context.fillText("Leaner", area.left, area.top - 8);
+  context.textAlign = "right";
+  context.fillText("Higher fat", area.right, area.top - 8);
+  context.save();
+  context.translate(area.left + 12, area.top + 10);
+  context.rotate(-Math.PI / 2);
+  context.textAlign = "right";
+  context.fillText(metric === "bmi" ? "Higher BMI" : "Higher FFMI", 0, 0);
+  context.restore();
   context.save();
   context.translate(16, (area.top + area.bottom) / 2);
   context.rotate(-Math.PI / 2);

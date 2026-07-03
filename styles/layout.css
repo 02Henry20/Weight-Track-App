@@ -115,13 +115,13 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 48px;
+  min-height: 54px;
   border: 1px solid transparent;
   border-radius: 13px;
   padding: 10px 12px;
   background: transparent;
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: 0.94rem;
   font-weight: 670;
   text-align: left;
   cursor: pointer;
@@ -130,21 +130,25 @@
 
 .nav-button:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(var(--accent-rgb), 0.08);
 }
 
 .nav-button.active {
-  border-color: rgba(47, 135, 255, 0.22);
-  background: linear-gradient(90deg, rgba(47, 135, 255, 0.16), rgba(47, 135, 255, 0.045));
+  border-color: rgba(var(--accent-rgb), 0.24);
+  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.18), rgba(var(--accent-rgb), 0.05));
   color: #e4efff;
+}
+
+:root[data-theme="light"] .nav-button.active {
+  color: var(--text);
 }
 
 .nav-icon {
   display: grid;
-  width: 26px;
+  width: 34px;
   place-items: center;
   color: var(--blue-bright);
-  font-size: 1.05rem;
+  font-size: 1.42rem;
 }
 
 .sidebar-footer {
@@ -284,7 +288,11 @@
 }
 
 .insight-card {
-  grid-column: 1 / -1 !important;
+  grid-column: 2 !important;
+}
+
+.quick-actions {
+  grid-column: 1;
 }
 
 .section-intro {
@@ -309,7 +317,7 @@
 
 .entry-type-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
   gap: 12px;
   margin-bottom: 14px;
 }
@@ -325,6 +333,14 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
   margin-bottom: 14px;
+}
+
+.body-chart-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.body-chart-grid .span-2 {
+  grid-column: auto;
 }
 
 .goals-layout,

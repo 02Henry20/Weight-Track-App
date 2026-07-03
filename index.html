@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="./styles/components.css">
   <link rel="stylesheet" href="./styles/layout.css">
   <link rel="stylesheet" href="./styles/responsive.css">
-  <title>MASS // TRACK</title>
+  <title>KiloPilot</title>
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -24,7 +24,7 @@
         <span></span><span></span><span></span>
       </div>
       <p class="eyebrow">BODY DATA · CLEAR SIGNAL</p>
-      <h1>MASS <span>//</span> TRACK</h1>
+      <h1>Kilo<span>Pilot</span></h1>
       <p class="auth-intro">
         Track weight, body composition and calorie intake. Keep working offline and synchronize securely through Firebase.
       </p>
@@ -53,10 +53,6 @@
           <input id="auth-password" type="password" autocomplete="current-password" minlength="6" placeholder="At least 6 characters" required>
         </label>
         <button class="primary-button" type="submit">Sign in</button>
-        <div class="two-button-row">
-          <button id="create-account-button" class="secondary-button" type="button">Create account</button>
-          <button id="reset-password-button" class="ghost-button" type="button">Reset password</button>
-        </div>
         <p id="auth-message" class="form-message" aria-live="polite"></p>
       </form>
     </section>
@@ -67,7 +63,7 @@
       <div class="sidebar-brand">
         <div class="brand-mark small" aria-hidden="true"><span></span><span></span><span></span></div>
         <div>
-          <strong>MASS <span>//</span> TRACK</strong>
+          <strong>Kilo<span>Pilot</span></strong>
           <small>Personal analytics</small>
         </div>
       </div>
@@ -268,11 +264,11 @@
           <div class="body-metric-grid">
             <article class="metric-card glass-panel"><span class="metric-title">Body fat</span><strong id="body-latest-fat">—</strong><small id="body-fat-category">No composition data</small></article>
             <article class="metric-card glass-panel"><span class="metric-title">Lean mass</span><strong id="body-lean-mass">—</strong><small>Estimated from body-fat entry</small></article>
-            <article class="metric-card glass-panel"><span class="metric-title">BMI</span><strong id="body-bmi">—</strong><small id="body-bmi-category">Set height in settings</small></article>
+            <article class="metric-card glass-panel"><span class="metric-title">BMI</span><strong id="body-bmi">—</strong><small id="body-bmi-category">Under 20 low · 20-25 reference · over 25 high</small></article>
             <article class="metric-card accent glass-panel"><span class="metric-title">Normalized FFMI</span><strong id="body-ffmi">—</strong><small id="body-ffmi-category">Training reference</small></article>
           </div>
 
-          <div class="analytics-grid">
+          <div class="analytics-grid body-chart-grid">
             <article class="chart-card glass-panel span-2">
               <div class="panel-heading">
                 <div><p class="eyebrow">COMPOSITION</p><h3>Body fat, lean mass and fat mass</h3></div>
@@ -291,7 +287,7 @@
                 <span class="metric-tag">Reference view</span>
               </div>
               <div class="chart-wrap physique-map-wrap"><canvas id="physique-map-chart"></canvas><div class="chart-empty" data-empty-for="physique-map-chart">Add body-fat data and set your height.</div></div>
-              <p class="disclaimer">This map is a training-oriented reference, not a medical diagnosis. Body-fat methods and hydration can materially affect the result.</p>
+              <p class="disclaimer plot-note">Training reference only. Hydration and measurement method can shift the result.</p>
             </article>
           </div>
         </section>
@@ -330,6 +326,8 @@
               <div class="panel-heading"><div><p class="eyebrow">PROFILE</p><h3>Body reference</h3></div></div>
               <form id="settings-form" class="settings-form">
                 <label class="field"><span>Appearance</span><select id="setting-theme"><option value="dark">Dark mode</option><option value="light">Light mode</option></select></label>
+                <label class="field"><span>Color theme</span><select id="setting-color-theme"><option value="ocean">Ocean</option><option value="forest">Forest</option><option value="violet">Violet</option><option value="ember">Ember</option></select></label>
+                <label class="field"><span>Motion</span><select id="setting-animation"><option value="on">Animations on</option><option value="off">Animations off</option></select></label>
                 <label class="field"><span>Height (cm)</span><input id="setting-height" type="number" min="120" max="230" step="0.1"></label>
                 <label class="field"><span>Body-fat reference profile</span><select id="setting-reference-sex"><option value="male">Male reference</option><option value="female">Female reference</option></select></label>
                 <label class="field"><span>Physique map vertical metric</span><select id="setting-map-metric"><option value="ffmi">Normalized FFMI</option><option value="bmi">BMI</option></select></label>

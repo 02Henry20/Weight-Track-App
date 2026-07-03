@@ -1,9 +1,7 @@
 import {
   auth,
-  createUserWithEmailAndPassword,
   initializeAuthPersistence,
   onAuthStateChanged,
-  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut
 } from "./firebase.js";
@@ -62,8 +60,6 @@ const elements = {
   authEmail: document.querySelector("#auth-email"),
   authPassword: document.querySelector("#auth-password"),
   authMessage: document.querySelector("#auth-message"),
-  createAccount: document.querySelector("#create-account-button"),
-  resetPassword: document.querySelector("#reset-password-button"),
   signOut: document.querySelector("#sign-out-button"),
   userChip: document.querySelector("#user-chip"),
   settingsUserEmail: document.querySelector("#settings-user-email"),
@@ -167,35 +163,6 @@ async function signInHandler(event) {
   setFormMessage(elements.authMessage, "");
   try {
     await signInWithEmailAndPassword(auth, elements.authEmail.value.trim(), elements.authPassword.value);
-  } catch (error) {
-    setFormMessage(elements.authMessage, firebaseErrorMessage(error), true);
-  } finally {
-    setAuthBusy(false);
-  }
-}
-
-async function createAccountHandler() {
-  setAuthBusy(true);
-  setFormMessage(elements.authMessage, "");
-  try {
-    await createUserWithEmailAndPassword(auth, elements.authEmail.value.trim(), elements.authPassword.value);
-  } catch (error) {
-    setFormMessage(elements.authMessage, firebaseErrorMessage(error), true);
-  } finally {
-    setAuthBusy(false);
-  }
-}
-
-async function resetPasswordHandler() {
-  const email = elements.authEmail.value.trim();
-  if (!email) {
-    setFormMessage(elements.authMessage, "Enter your email address first.", true);
-    return;
-  }
-  setAuthBusy(true);
-  try {
-    await sendPasswordResetEmail(auth, email);
-    setFormMessage(elements.authMessage, "Password reset email sent.");
   } catch (error) {
     setFormMessage(elements.authMessage, firebaseErrorMessage(error), true);
   } finally {
@@ -463,6 +430,8 @@ function submitSettings(event) {
   event.preventDefault();
   const settings = {
     theme: document.querySelector("#setting-theme").value,
+    colorTheme: document.querySelector("#setting-color-theme").value,
+    animation: document.querySelector("#setting-animation").value,
     heightCm: document.querySelector("#setting-height").value,
     referenceSex: document.querySelector("#setting-reference-sex").value,
     mapMetric: document.querySelector("#setting-map-metric").value,
@@ -576,6 +545,14 @@ function setText(selector, value) {
   if (element) element.textContent = value;
 }
 
+function applyAppearance(settings = state.settings) {
+  document.documentElement.dataset.theme = settings.theme === "light" ? "light" : "dark";
+  document.documentElement.dataset.colorTheme = ["ocean", "forest", "violet", "ember"].includes(settings.colorTheme)
+    ? settings.colorTheme
+    : "ocean";
+  document.documentElement.dataset.motion = settings.animation === "off" ? "off" : "on";
+}
+
 function setConfidenceBadge(selector, confidence, score = null) {
   const badge = document.querySelector(selector);
   badge.className = `confidence-badge ${confidence ?? ""}`.trim();
@@ -684,7 +661,7 @@ function renderBody(analyses) {
   setText("#body-fat-category", body.latest ? body.bodyFatCategory : "No composition data");
   setText("#body-lean-mass", body.latest ? `${body.latest.leanMass.toFixed(1)} kg` : "—");
   setText("#body-bmi", body.currentBmi == null ? "—" : body.currentBmi.toFixed(1));
-  setText("#body-bmi-category", body.currentBmi == null ? "Set height and add weight" : body.bmiCategory);
+  setText("#body-bmi-category", body.currentBmi == null ? "Under 20 low · 20-25 reference · over 25 high" : `${body.bmiCategory} · <20 low · >25 high`);
   setText("#body-ffmi", body.latest?.normalizedFfmi == null ? "—" : body.latest.normalizedFfmi.toFixed(1));
   setText("#body-ffmi-category", body.latest?.normalizedFfmi == null ? "Needs body-fat data" : body.ffmiCategory);
   setText("#map-metric-name", state.settings.mapMetric === "bmi" ? "BMI" : "normalized FFMI");
@@ -711,6 +688,8 @@ function renderSettings() {
   const form = document.querySelector("#settings-form");
   if (!form.contains(document.activeElement)) {
     document.querySelector("#setting-theme").value = state.settings.theme;
+    document.querySelector("#setting-color-theme").value = state.settings.colorTheme;
+    document.querySelector("#setting-animation").value = state.settings.animation;
     document.querySelector("#setting-height").value = state.settings.heightCm;
     document.querySelector("#setting-reference-sex").value = state.settings.referenceSex;
     document.querySelector("#setting-map-metric").value = state.settings.mapMetric;
@@ -774,7 +753,7 @@ function scheduleRender() {
   window.requestAnimationFrame(() => {
     renderScheduled = false;
     latestAnalyses = calculateAnalyses();
-    document.documentElement.dataset.theme = state.settings.theme === "light" ? "light" : "dark";
+    applyAppearance(state.settings);
     updateSyncStatus();
     renderOverview(latestAnalyses);
     renderLog();
@@ -865,8 +844,6 @@ function setupServiceWorker() {
 
 function bindEvents() {
   elements.authForm.addEventListener("submit", signInHandler);
-  elements.createAccount.addEventListener("click", createAccountHandler);
-  elements.resetPassword.addEventListener("click", resetPasswordHandler);
   elements.signOut.addEventListener("click", () => signOut(auth));
 
   document.querySelectorAll("[data-view]").forEach(button => {
@@ -900,8 +877,31 @@ function bindEvents() {
     });
   });
   document.querySelector("#calorie-value").addEventListener("input", updateCaloriePreview);
-  document.querySelector("#setting-theme").addEventListener("change", event => {
-    document.documentElement.dataset.theme = event.target.value === "light" ? "light" : "dark";
+  document.querySelector("#setting-theme").addEventListener("change", () => {
+    applyAppearance({
+      ...state.settings,
+      theme: document.querySelector("#setting-theme").value,
+      colorTheme: document.querySelector("#setting-color-theme").value,
+      animation: document.querySelector("#setting-animation").value
+    });
+    renderActiveCharts();
+  });
+  document.querySelector("#setting-color-theme").addEventListener("change", () => {
+    applyAppearance({
+      ...state.settings,
+      theme: document.querySelector("#setting-theme").value,
+      colorTheme: document.querySelector("#setting-color-theme").value,
+      animation: document.querySelector("#setting-animation").value
+    });
+    renderActiveCharts();
+  });
+  document.querySelector("#setting-animation").addEventListener("change", () => {
+    applyAppearance({
+      ...state.settings,
+      theme: document.querySelector("#setting-theme").value,
+      colorTheme: document.querySelector("#setting-color-theme").value,
+      animation: document.querySelector("#setting-animation").value
+    });
     renderActiveCharts();
   });
   document.querySelector("#setting-chart-scale-mode").addEventListener("change", event => {
@@ -933,6 +933,7 @@ setStoreErrorHandler(error => {
 });
 
 subscribeState(scheduleRender);
+applyAppearance(state.settings);
 bindEvents();
 setupServiceWorker();
 initializeAuthentication();

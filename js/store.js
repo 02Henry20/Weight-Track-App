@@ -11,6 +11,8 @@ import {
 
 export const DEFAULT_SETTINGS = Object.freeze({
   theme: "dark",
+  colorTheme: "ocean",
+  animation: "on",
   heightCm: 171,
   referenceSex: "male",
   mapMetric: "ffmi",
@@ -276,6 +278,8 @@ export function saveSettings(settings) {
   const user = requireUser();
   return setDoc(userDoc(user.uid, "settings", "preferences"), {
     theme: settings.theme === "light" ? "light" : "dark",
+    colorTheme: ["ocean", "forest", "violet", "ember"].includes(settings.colorTheme) ? settings.colorTheme : "ocean",
+    animation: settings.animation === "off" ? "off" : "on",
     heightCm: Number(settings.heightCm),
     referenceSex: settings.referenceSex,
     mapMetric: settings.mapMetric,
@@ -326,7 +330,7 @@ export function exportState() {
 export async function importState(backup) {
   const user = requireUser();
   if (!backup || backup.format !== "mass-track-backup") {
-    throw new Error("This is not a valid MASS // TRACK backup.");
+    throw new Error("This is not a valid KiloPilot backup.");
   }
 
   const operations = [];

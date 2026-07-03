@@ -1,6 +1,6 @@
 {
-  "name": "MASS // TRACK",
-  "short_name": "Mass Track",
+  "name": "KiloPilot",
+  "short_name": "KiloPilot",
   "description": "Local-first weight, body-composition and calorie analytics synchronized with Firebase.",
   "id": "./",
   "start_url": "./",
