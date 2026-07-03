@@ -396,13 +396,15 @@
                 <div><span>Weight records</span><strong id="settings-weight-count">0</strong></div>
                 <div><span>Body records</span><strong id="settings-body-count">0</strong></div>
                 <div><span>Calorie records</span><strong id="settings-calorie-count">0</strong></div>
-                <div><span>Local cache</span><strong>Enabled</strong></div>
+                <div><span>Device storage</span><strong>Enabled</strong></div>
                 <div><span>Cloud database</span><strong>Firebase Firestore</strong></div>
+                <div><span>Conflict handling</span><strong>Manual choice</strong></div>
                 <div><span>App version</span><strong id="settings-app-version">—</strong></div>
               </div>
+              <button id="sync-now-button" class="primary-button full-width" type="button">Review and synchronize now</button>
               <button id="export-data-button" class="secondary-button full-width" type="button">Export JSON backup</button>
               <label class="secondary-button full-width file-button">Import JSON backup<input id="import-data-input" type="file" accept="application/json" hidden></label>
-              <p class="disclaimer">Cloud sync is the primary backup. A JSON export gives you an additional portable copy.</p>
+              <p class="disclaimer">CalStat compares this device with Firebase before resolving differences. A JSON export gives you an additional portable copy.</p>
             </article>
           </div>
         </section>
@@ -476,6 +478,29 @@
         <button class="primary-button" type="submit">Save calorie entry</button>
         <p id="calorie-form-message" class="form-message" aria-live="polite"></p>
       </form>
+    </section>
+
+    <section id="sync-conflict-modal" class="modal-card sync-conflict-card" data-modal="sync-conflict" hidden aria-modal="true" role="dialog" aria-labelledby="sync-conflict-title">
+      <div class="sync-conflict-icon" aria-hidden="true">⇄</div>
+      <p class="eyebrow">SYNC DECISION</p>
+      <h3 id="sync-conflict-title">This device and Firebase differ</h3>
+      <p id="sync-conflict-summary" class="sync-conflict-copy">Choose how CalStat should reconcile the two copies.</p>
+      <div class="sync-copy-grid">
+        <div><span>This device</span><strong id="sync-local-summary">—</strong></div>
+        <div><span>Firebase</span><strong id="sync-cloud-summary">—</strong></div>
+      </div>
+      <div class="sync-choice-stack">
+        <button id="sync-choice-merge" class="primary-button" type="button">
+          <strong>Merge both</strong><span>Recommended · keep unique records and use the newer same-date value</span>
+        </button>
+        <button id="sync-choice-cloud" class="secondary-button" type="button">
+          <strong>Use Firebase</strong><span>Replace this device copy with the current cloud data</span>
+        </button>
+        <button id="sync-choice-local" class="danger-button" type="button">
+          <strong>Upload this device</strong><span>Replace Firebase and remove cloud records missing on this device</span>
+        </button>
+      </div>
+      <p class="sync-warning">“Upload this device” is destructive. Merge both is the safest choice for normal multi-device use.</p>
     </section>
 
     <section id="confirm-modal" class="modal-card confirm-card" data-modal="confirm" hidden aria-modal="true" role="dialog" aria-labelledby="confirm-title">
