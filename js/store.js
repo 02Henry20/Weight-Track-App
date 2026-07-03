@@ -19,8 +19,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   smoothingDays: 7,
   trendWindowDays: 28,
   maintenanceWindowDays: 28,
-  predictionMonths: 3,
-  chartRangeDays: 180,
+  predictionDays: 91,
+  chartStartDate: "",
   chartScaleMode: "auto",
   chartWeightMin: "",
   chartWeightMax: "",
@@ -165,9 +165,15 @@ export function connectUserData(user) {
     userDoc(user.uid, "settings", "preferences"),
     { includeMetadataChanges: true },
     snapshot => {
+      const storedSettings = snapshot.exists() ? snapshot.data() : {};
+      const legacyPredictionDays = Math.round((Number(storedSettings.predictionMonths) || 3) * 30.4375);
       state.settings = {
         ...DEFAULT_SETTINGS,
-        ...(snapshot.exists() ? snapshot.data() : {})
+        ...storedSettings,
+        predictionDays: Number.isFinite(Number(storedSettings.predictionDays))
+          ? Math.max(1, Math.round(Number(storedSettings.predictionDays)))
+          : legacyPredictionDays,
+        chartStartDate: typeof storedSettings.chartStartDate === "string" ? storedSettings.chartStartDate : ""
       };
       state.metadata.settings = {
         fromCache: snapshot.metadata.fromCache,
@@ -287,8 +293,10 @@ export function saveSettings(settings) {
     smoothingDays: Number(settings.smoothingDays),
     trendWindowDays: Number(settings.trendWindowDays),
     maintenanceWindowDays: Number(settings.maintenanceWindowDays),
-    predictionMonths: Number(settings.predictionMonths),
-    chartRangeDays: Number(settings.chartRangeDays),
+    predictionDays: Number.isFinite(Number(settings.predictionDays))
+      ? Math.max(1, Math.round(Number(settings.predictionDays)))
+      : Math.round((Number(settings.predictionMonths) || 3) * 30.4375),
+    chartStartDate: typeof settings.chartStartDate === "string" ? settings.chartStartDate : "",
     chartScaleMode: settings.chartScaleMode === "fixed" ? "fixed" : "auto",
     chartWeightMin: settings.chartWeightMin === "" ? "" : Number(settings.chartWeightMin),
     chartWeightMax: settings.chartWeightMax === "" ? "" : Number(settings.chartWeightMax),

@@ -31,6 +31,7 @@ import {
   analyseMaintenance,
   analyseWeight,
   buildInsight,
+  addDays,
   formatLongDate,
   round,
   todayString
@@ -43,7 +44,7 @@ import {
   redrawOnResize
 } from "./charts.js";
 
-const APP_VERSION = "2.1.0";
+const APP_VERSION = "2.2.0";
 
 const VIEW_LABELS = {
   overview: ["TODAY'S SIGNAL", "Overview"],
@@ -441,8 +442,8 @@ function submitSettings(event) {
     smoothingDays: document.querySelector("#setting-smoothing").value,
     trendWindowDays: document.querySelector("#setting-trend-window").value,
     maintenanceWindowDays: document.querySelector("#setting-maintenance-window").value,
-    predictionMonths: document.querySelector("#setting-prediction-months").value,
-    chartRangeDays: document.querySelector("#setting-chart-range").value,
+    predictionDays: document.querySelector("#setting-prediction-days").value,
+    chartStartDate: document.querySelector("#setting-chart-start-date").value,
     chartScaleMode: document.querySelector("#setting-chart-scale-mode").value,
     chartWeightMin: document.querySelector("#setting-chart-weight-min").value,
     chartWeightMax: document.querySelector("#setting-chart-weight-max").value,
@@ -453,6 +454,23 @@ function submitSettings(event) {
 
   if (Number(settings.heightCm) < 120 || Number(settings.heightCm) > 230) {
     setFormMessage(message, "Height must be between 120 and 230 cm.", true);
+    return;
+  }
+  const integerDayFields = [
+    [settings.smoothingDays, 1, 90, "Weight smoothing"],
+    [settings.trendWindowDays, 7, 730, "Trend analysis window"],
+    [settings.maintenanceWindowDays, 7, 730, "Maintenance estimation window"],
+    [settings.predictionDays, 7, 3650, "Prediction horizon"]
+  ];
+  for (const [value, minimum, maximum, label] of integerDayFields) {
+    const numericValue = Number(value);
+    if (!Number.isInteger(numericValue) || numericValue < minimum || numericValue > maximum) {
+      setFormMessage(message, `${label} must be a whole number between ${minimum} and ${maximum} days.`, true);
+      return;
+    }
+  }
+  if (settings.chartStartDate && settings.chartStartDate > todayString()) {
+    setFormMessage(message, "Chart history cannot start in the future.", true);
     return;
   }
   const fixedMin = Number(settings.chartWeightMin);
@@ -592,24 +610,24 @@ function renderOverview(analyses) {
   const goalDifference = goals.difference;
   const goalDaysValue = document.querySelector("#goal-days-value");
   const goalDaysLabel = document.querySelector("#goal-days-label");
-  const goalTimeEndLabel = document.querySelector("#goal-time-end-label");
+  const goalCountdownMeta = document.querySelector("#goal-countdown-meta");
   if (goalDifference == null) {
     goalDaysValue.textContent = "—";
     goalDaysLabel.textContent = "Set a target weight";
-    goalTimeEndLabel.textContent = "Target";
+    goalCountdownMeta.textContent = "The estimate will use your current trend.";
   } else if (Math.abs(goalDifference) <= 0.05) {
     goalDaysValue.textContent = "Reached";
     goalDaysLabel.textContent = "Target achieved";
-    goalTimeEndLabel.textContent = "Now";
+    goalCountdownMeta.textContent = "You are at the configured target weight.";
   } else if (goals.etaDays != null && goals.etaDate) {
     const daysLeft = Math.max(1, Math.ceil(goals.etaDays));
     goalDaysValue.textContent = `${daysLeft.toLocaleString()} day${daysLeft === 1 ? "" : "s"}`;
     goalDaysLabel.textContent = "estimated until target";
-    goalTimeEndLabel.textContent = "Projected target";
+    goalCountdownMeta.textContent = `Projected for ${formatLongDate(goals.etaDate)}.`;
   } else {
     goalDaysValue.textContent = "No ETA";
     goalDaysLabel.textContent = `${Math.abs(goalDifference).toFixed(1)} kg left · recent trend is not aligned`;
-    goalTimeEndLabel.textContent = "Target";
+    goalCountdownMeta.textContent = "Log more aligned measurements to estimate the date.";
   }
   setText("#goal-target-weight", goals.targetWeight == null ? "—" : `${goals.targetWeight.toFixed(1)} kg`);
   setText("#goal-eta", goals.etaDate ? formatLongDate(goals.etaDate) : "Not enough trend");
@@ -654,7 +672,8 @@ function renderLog() {
 
 function renderTrends(analyses) {
   const { weight, maintenance, dietPhase } = analyses;
-  setText("#trend-window-badge", `${state.settings.trendWindowDays}-day model · ${state.settings.predictionMonths}mo forecast`);
+  const predictionDays = Number(state.settings.predictionDays) || Math.round((Number(state.settings.predictionMonths) || 3) * 30.4375);
+  setText("#trend-window-badge", `${state.settings.trendWindowDays}-day model · ${predictionDays}-day forecast`);
   setText("#trend-current", weight.current == null ? "—" : `${weight.current.toFixed(1)} kg`);
   setText("#trend-rate", weight.weeklyRate == null ? "—" : `${formatSigned(weight.weeklyRate, 2)} kg/week`);
   setText("#trend-projected", weight.projectedWeight == null ? "—" : `${weight.projectedWeight.toFixed(1)} kg`);
@@ -782,8 +801,13 @@ function renderSettings() {
     document.querySelector("#setting-smoothing").value = String(state.settings.smoothingDays);
     document.querySelector("#setting-trend-window").value = String(state.settings.trendWindowDays);
     document.querySelector("#setting-maintenance-window").value = String(state.settings.maintenanceWindowDays);
-    document.querySelector("#setting-prediction-months").value = String(state.settings.predictionMonths);
-    document.querySelector("#setting-chart-range").value = String(state.settings.chartRangeDays);
+    const predictionDays = Number(state.settings.predictionDays) || Math.round((Number(state.settings.predictionMonths) || 3) * 30.4375);
+    document.querySelector("#setting-prediction-days").value = String(predictionDays);
+    const legacyRangeDays = Number(state.settings.chartRangeDays) || 0;
+    const latestChartDate = state.weights[0]?.date ?? todayString();
+    const chartStartDate = state.settings.chartStartDate || (legacyRangeDays > 0 ? addDays(latestChartDate, -legacyRangeDays) : "");
+    document.querySelector("#setting-chart-start-date").value = chartStartDate;
+    document.querySelector("#setting-chart-start-date").max = todayString();
     document.querySelector("#setting-chart-scale-mode").value = state.settings.chartScaleMode;
     document.querySelector("#setting-chart-weight-min").value = state.settings.chartWeightMin ?? "";
     document.querySelector("#setting-chart-weight-max").value = state.settings.chartWeightMax ?? "";

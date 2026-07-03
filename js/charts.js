@@ -28,12 +28,12 @@ function refreshColors() {
   COLORS.white = styles.getPropertyValue("--text").trim() || COLORS.white;
 }
 
-function prepareCanvas(canvas, { maxDpr = 3 } = {}) {
+function prepareCanvas(canvas, { maxDpr = 3, minDpr = 1 } = {}) {
   refreshColors();
   const rectangle = canvas.getBoundingClientRect();
   const width = Math.max(260, rectangle.width || canvas.parentElement?.clientWidth || 600);
   const height = Math.max(210, rectangle.height || canvas.parentElement?.clientHeight || 300);
-  const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
+  const dpr = Math.min(maxDpr, Math.max(minDpr, window.devicePixelRatio || 1));
 
   canvas.width = Math.round(width * dpr);
   canvas.height = Math.round(height * dpr);
@@ -499,7 +499,7 @@ function metricBands(metric, referenceSex) {
   }
 
   const limits = referenceSex === "female" ? [12, 14, 16, 18, 20, 23] : [14, 16, 18, 20, 22, 26];
-  const labels = ["Below", "Average", "Above avg.", "Athletic", "Highly muscular"];
+  const labels = ["Below", "Average", "Above avg.", "Athletic", "Muscular"];
   return limits.slice(0, -1).map((min, index) => ({ min, max: limits[index + 1], label: labels[index] }));
 }
 
@@ -517,8 +517,8 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
   setChartAvailability(canvas, available);
   if (!available) return;
 
-  const { context, width, height } = prepareCanvas(canvas, { maxDpr: 4 });
-  const area = chartArea(width, height, { left: 96, right: 24, top: 28, bottom: 98 });
+  const { context, width, height } = prepareCanvas(canvas, { maxDpr: 4, minDpr: 2 });
+  const area = chartArea(width, height, { left: 94, right: 20, top: 18, bottom: 68 });
   const xBands = bodyFatBands(settings.referenceSex);
   const yBands = metricBands(metric, settings.referenceSex);
   const xMin = xBands[0].min;
@@ -606,7 +606,7 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
   if (points.length > 1) {
     context.save();
     context.strokeStyle = "rgba(148, 117, 255, 0.54)";
-    context.lineWidth = 2.5;
+    context.lineWidth = width <= 560 ? 1.7 : 2.2;
     context.beginPath();
     points.forEach((point, index) => {
       const x = xScale(point.x);
@@ -622,15 +622,17 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
     const x = xScale(point.x);
     const y = yScale(point.y);
     const latest = index === points.length - 1;
+    const compact = width <= 560;
+    const radius = latest ? (compact ? 5.2 : 6.3) : (compact ? 2.5 : 3.4);
     context.save();
     context.shadowColor = latest ? COLORS.cyan : COLORS.purple;
-    context.shadowBlur = latest ? 18 : 7;
+    context.shadowBlur = latest ? (compact ? 10 : 14) : (compact ? 3 : 5);
     context.fillStyle = latest ? COLORS.cyan : COLORS.purple;
     context.beginPath();
-    context.arc(x, y, latest ? 7.5 : 4.5, 0, Math.PI * 2);
+    context.arc(x, y, radius, 0, Math.PI * 2);
     context.fill();
     context.strokeStyle = latest ? COLORS.white : "rgba(244, 248, 255, 0.58)";
-    context.lineWidth = latest ? 2.25 : 1.25;
+    context.lineWidth = latest ? (compact ? 1.5 : 1.8) : 1;
     context.stroke();
     context.restore();
     hitPoints.push({

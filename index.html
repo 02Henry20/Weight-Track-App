@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#07111f">
-  <meta name="description" content="Local-first weight, nutrition and body-composition tracking with Firebase synchronization.">
+  <meta name="description" content="Weight, calorie, maintenance, body-composition and goal analytics in one private tracker.">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon-192.png">
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
@@ -23,16 +23,11 @@
       <div class="brand-mark" aria-hidden="true">
         <span></span><span></span><span></span>
       </div>
-      <p class="eyebrow">BODY DATA · CLEAR SIGNAL</p>
+      <p class="eyebrow">WEIGHT · NUTRITION · PROGRESS</p>
       <h1>Cal<span>Stat</span></h1>
       <p class="auth-intro">
-        Track weight, body composition and calorie intake. Keep working offline and synchronize securely through Firebase.
+        Track weight trends, calorie intake, maintenance estimates, body composition and progress toward your goals.
       </p>
-      <div class="auth-feature-grid">
-        <div><strong>Offline first</strong><span>Cached locally</span></div>
-        <div><strong>Cloud safe</strong><span>Firebase sync</span></div>
-        <div><strong>Adaptive</strong><span>Trend estimates</span></div>
-      </div>
     </section>
 
     <section class="auth-card glass-panel">
@@ -41,7 +36,7 @@
         <span id="boot-text">Loading Firebase…</span>
       </div>
       <h2>Access your data</h2>
-      <p class="muted">Use the Firebase email/password account you already created.</p>
+      <p class="muted">Sign in with your email and password.</p>
 
       <form id="auth-form" class="stack-form">
         <label class="field">
@@ -167,16 +162,12 @@
                 <button class="icon-button" data-go-view="goals" type="button" aria-label="Open goals">→</button>
               </div>
               <div class="goal-countdown" aria-label="Estimated time to target">
+                <span class="goal-countdown-icon" aria-hidden="true">⌛</span>
                 <div class="goal-countdown-copy">
                   <strong id="goal-days-value">—</strong>
                   <span id="goal-days-label">Set a target weight</span>
+                  <small id="goal-countdown-meta">The estimate will use your current trend.</small>
                 </div>
-                <div class="goal-time-rail" aria-hidden="true">
-                  <span class="goal-time-origin"></span>
-                  <span class="goal-time-line"></span>
-                  <span class="goal-time-target">◆</span>
-                </div>
-                <div class="goal-time-ends"><span>Today</span><span id="goal-time-end-label">Target</span></div>
               </div>
               <div class="goal-details">
                 <div><span>Target</span><strong id="goal-target-weight">—</strong></div>
@@ -291,7 +282,7 @@
           </div>
 
           <div class="analytics-grid body-chart-grid">
-            <article class="chart-card glass-panel span-2">
+            <article class="chart-card glass-panel span-2 body-composition-card">
               <div class="panel-heading">
                 <div><p class="eyebrow">COMPOSITION</p><h3>Body fat, lean mass and fat mass</h3></div>
                 <div class="legend-row">
@@ -300,7 +291,7 @@
                   <span><i class="legend-dot body-fat"></i>Body fat %</span>
                 </div>
               </div>
-              <div class="chart-wrap tall"><canvas id="body-composition-chart"></canvas><div class="chart-empty" data-empty-for="body-composition-chart">Add at least two body-composition entries.</div></div>
+              <div class="chart-wrap body-composition-wrap"><canvas id="body-composition-chart"></canvas><div class="chart-empty" data-empty-for="body-composition-chart">Add at least two body-composition entries.</div></div>
             </article>
 
             <article class="chart-card glass-panel span-2 physique-map-card">
@@ -356,18 +347,42 @@
                 <div class="settings-divider"></div>
                 <p class="settings-group-title">Averaging and models</p>
 
-                <label class="field"><span>Weight smoothing period</span><select id="setting-smoothing"><option value="1">No smoothing</option><option value="3">3 days</option><option value="7">7 days</option><option value="14">14 days</option></select></label>
-                <label class="field"><span>Trend analysis window</span><select id="setting-trend-window"><option value="14">14 days</option><option value="28">28 days</option><option value="42">42 days</option><option value="60">60 days</option><option value="90">90 days</option></select></label>
-                <label class="field"><span>Analysis quality panel</span><select id="setting-trend-confidence"><option value="on">Show model quality, sufficiency and volatility</option><option value="off">Hide the combined quality panel</option></select></label>
-                <label class="field"><span>Maintenance estimation window</span><select id="setting-maintenance-window"><option value="14">14 days</option><option value="21">21 days</option><option value="28">28 days</option><option value="42">42 days</option><option value="60">60 days</option></select></label>
-                <label class="field"><span>Prediction horizon</span><select id="setting-prediction-months"><option value="1">1 month</option><option value="2">2 months</option><option value="3">3 months</option><option value="6">6 months</option><option value="12">12 months</option></select></label>
-                <label class="field"><span>Chart history</span><select id="setting-chart-range"><option value="30">30 days</option><option value="90">90 days</option><option value="180">6 months</option><option value="365">1 year</option><option value="0">All data</option></select></label>
-                <label class="field"><span>Weight chart scale</span><select id="setting-chart-scale-mode"><option value="auto">Auto range</option><option value="fixed">Set range</option></select></label>
+                <div class="field setting-field">
+                  <div class="field-label-row"><label for="setting-smoothing">Weight smoothing period (days)</label><details class="setting-help"><summary aria-label="Explain weight smoothing">i</summary><p>Averages nearby weigh-ins to reduce daily water and digestion noise. Use 1 day for no smoothing.</p></details></div>
+                  <input id="setting-smoothing" type="number" min="1" max="90" step="1" inputmode="numeric">
+                </div>
+                <div class="field setting-field">
+                  <div class="field-label-row"><label for="setting-trend-window">Trend analysis window (days)</label><details class="setting-help"><summary aria-label="Explain trend window">i</summary><p>Controls how many recent days are used to estimate weight velocity and the current diet phase.</p></details></div>
+                  <input id="setting-trend-window" type="number" min="7" max="730" step="1" inputmode="numeric">
+                </div>
+                <div class="field setting-field">
+                  <div class="field-label-row"><label for="setting-trend-confidence">Analysis quality panel</label><details class="setting-help"><summary aria-label="Explain analysis quality panel">i</summary><p>Shows maintenance-model readiness, measurement sufficiency and weight volatility together beside the chart.</p></details></div>
+                  <select id="setting-trend-confidence"><option value="on">Show combined quality panel</option><option value="off">Hide combined quality panel</option></select>
+                </div>
+                <div class="field setting-field">
+                  <div class="field-label-row"><label for="setting-maintenance-window">Maintenance estimation window (days)</label><details class="setting-help"><summary aria-label="Explain maintenance window">i</summary><p>Sets the period used to connect average calorie intake with measured weight change.</p></details></div>
+                  <input id="setting-maintenance-window" type="number" min="7" max="730" step="1" inputmode="numeric">
+                </div>
+                <div class="field setting-field">
+                  <div class="field-label-row"><label for="setting-prediction-days">Prediction horizon (days)</label><details class="setting-help"><summary aria-label="Explain prediction horizon">i</summary><p>Sets how far the current weight trend is projected into the future. Longer forecasts are less certain.</p></details></div>
+                  <input id="setting-prediction-days" type="number" min="7" max="3650" step="1" inputmode="numeric">
+                </div>
+                <div class="field setting-field">
+                  <div class="field-label-row"><label for="setting-chart-start-date">Chart history starts on</label><details class="setting-help"><summary aria-label="Explain chart history">i</summary><p>Only measurements on or after this date appear in weight charts. Leave it empty to show all history.</p></details></div>
+                  <input id="setting-chart-start-date" type="date">
+                </div>
+                <div class="field setting-field">
+                  <div class="field-label-row"><label for="setting-chart-scale-mode">Weight chart scale</label><details class="setting-help"><summary aria-label="Explain chart scale">i</summary><p>Auto follows your visible data. Fixed keeps the same vertical range for easier visual comparison.</p></details></div>
+                  <select id="setting-chart-scale-mode"><option value="auto">Auto range</option><option value="fixed">Set range</option></select>
+                </div>
                 <div id="chart-fixed-range-fields" class="settings-inline-grid hidden">
                   <label class="field"><span>Min weight (kg)</span><input id="setting-chart-weight-min" type="number" min="20" max="500" step="0.1" placeholder="60.0"></label>
                   <label class="field"><span>Max weight (kg)</span><input id="setting-chart-weight-max" type="number" min="20" max="500" step="0.1" placeholder="90.0"></label>
                 </div>
-                <label class="field"><span>Energy conversion estimate (kcal/kg)</span><input id="setting-energy-density" type="number" min="4000" max="10000" step="100"></label>
+                <div class="field setting-field">
+                  <div class="field-label-row"><label for="setting-energy-density">Energy conversion estimate (kcal/kg)</label><details class="setting-help"><summary aria-label="Explain energy conversion">i</summary><p>Approximate energy associated with one kilogram of weight change. It affects maintenance and goal calculations.</p></details></div>
+                  <input id="setting-energy-density" type="number" min="4000" max="10000" step="100">
+                </div>
 
                 <button class="primary-button" type="submit">Save settings</button>
                 <p id="settings-message" class="form-message" aria-live="polite"></p>

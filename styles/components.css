@@ -1128,12 +1128,14 @@ select:disabled {
 /* CalStat analytics additions */
 .goal-countdown {
   display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   flex: 1;
   align-content: center;
-  gap: 16px;
-  min-height: 190px;
+  align-items: center;
+  gap: 17px;
+  min-height: 176px;
   margin: 12px 0 16px;
-  padding: 20px 18px;
+  padding: 22px 20px;
   border: 1px solid rgba(var(--accent-rgb), 0.24);
   border-radius: 19px;
   background:
@@ -1141,74 +1143,43 @@ select:disabled {
     linear-gradient(145deg, rgba(var(--accent-rgb), 0.08), rgba(255, 255, 255, 0.018));
 }
 
+.goal-countdown-icon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border: 1px solid rgba(var(--accent-2-rgb), 0.28);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(var(--accent-rgb), 0.16), rgba(var(--accent-2-rgb), 0.1));
+  color: var(--cyan);
+  font-size: 1.7rem;
+  box-shadow: 0 0 25px rgba(var(--accent-2-rgb), 0.12);
+}
+
 .goal-countdown-copy {
   display: grid;
   gap: 6px;
-  text-align: center;
+  min-width: 0;
 }
 
 .goal-countdown-copy strong {
   color: var(--blue-bright);
   font-size: clamp(2rem, 4vw, 2.8rem);
   line-height: 0.95;
+  overflow-wrap: anywhere;
   text-shadow: 0 0 22px rgba(var(--accent-rgb), 0.25);
 }
 
-.goal-countdown-copy span,
-.goal-time-ends {
+.goal-countdown-copy > span {
+  color: var(--muted-strong);
+  font-size: 0.8rem;
+  font-weight: 760;
+}
+
+.goal-countdown-copy small {
   color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.goal-time-rail {
-  position: relative;
-  height: 22px;
-  margin: 3px 8px 0;
-}
-
-.goal-time-line {
-  position: absolute;
-  top: 9px;
-  right: 7px;
-  left: 7px;
-  height: 4px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--blue), var(--cyan), var(--green));
-  box-shadow: 0 0 18px rgba(var(--accent-2-rgb), 0.3);
-}
-
-.goal-time-origin,
-.goal-time-target {
-  position: absolute;
-  z-index: 1;
-  top: 4px;
-  display: grid;
-  width: 14px;
-  height: 14px;
-  place-items: center;
-}
-
-.goal-time-origin {
-  left: 0;
-  border: 3px solid var(--blue-bright);
-  border-radius: 999px;
-  background: var(--panel-solid);
-  box-shadow: 0 0 15px rgba(var(--accent-rgb), 0.48);
-}
-
-.goal-time-target {
-  right: -1px;
-  color: var(--green);
-  font-size: 0.9rem;
-  line-height: 1;
-  text-shadow: 0 0 13px rgba(53, 208, 127, 0.55);
-}
-
-.goal-time-ends {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  font-size: 0.72rem;
+  line-height: 1.4;
 }
 
 .action-symbol {
@@ -1381,5 +1352,109 @@ select:disabled {
 
   .metric-stack > div {
     padding: 21px 0;
+  }
+}
+
+
+/* CalStat 2.2 settings and compact body charts */
+.field-label-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.field-label-row > label {
+  color: var(--muted-strong);
+  font-size: 0.83rem;
+  font-weight: 720;
+}
+
+.setting-help {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.setting-help summary {
+  display: grid;
+  width: 23px;
+  height: 23px;
+  place-items: center;
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.08);
+  color: var(--blue-bright);
+  font-size: 0.72rem;
+  font-weight: 850;
+  cursor: pointer;
+  list-style: none;
+}
+
+.setting-help summary::-webkit-details-marker { display: none; }
+
+.setting-help[open] summary {
+  border-color: var(--line-strong);
+  background: rgba(var(--accent-rgb), 0.18);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.08);
+}
+
+.setting-help p {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 12;
+  width: min(290px, calc(100vw - 64px));
+  margin: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel-solid) 96%, transparent);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.34);
+  color: var(--muted-strong);
+  font-size: 0.76rem;
+  font-weight: 520;
+  line-height: 1.48;
+}
+
+.body-chart-grid .chart-card {
+  align-self: start;
+}
+
+.body-composition-wrap > canvas,
+.physique-map-wrap > canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.body-composition-wrap {
+  min-height: 310px;
+}
+
+.physique-map-wrap {
+  min-height: 326px;
+}
+
+@media (max-width: 680px) {
+  .goal-countdown {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    min-height: 164px;
+    padding: 18px;
+    text-align: center;
+  }
+
+  .goal-countdown-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.45rem;
+  }
+
+  .body-composition-wrap {
+    min-height: 285px;
+  }
+
+  .physique-map-wrap {
+    min-height: 315px;
   }
 }

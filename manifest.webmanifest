@@ -1,7 +1,7 @@
 {
   "name": "CalStat",
   "short_name": "CalStat",
-  "description": "Local-first weight, nutrition and body-composition analytics synchronized with Firebase.",
+  "description": "Weight, calorie, maintenance, body-composition and goal analytics in one private tracker.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
@@ -28,5 +28,5 @@
       "purpose": "any maskable"
     }
   ],
-  "version": "2.1.0"
+  "version": "2.2.0"
 }

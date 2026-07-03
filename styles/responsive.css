@@ -173,9 +173,6 @@
     font-size: 3.35rem;
   }
 
-  .auth-feature-grid {
-    grid-template-columns: 1fr;
-  }
 
   .topbar {
     padding: 12px 14px;
@@ -253,7 +250,7 @@
   }
 
   .physique-map-wrap {
-    min-height: 330px;
+    min-height: 315px;
   }
 
   .body-metric-grid {

@@ -1,5 +1,4 @@
 const DAY_MS = 86_400_000;
-const MONTH_DAYS = 30.4375;
 
 export function parseDate(dateString) {
   return new Date(`${dateString}T00:00:00`);
@@ -182,13 +181,18 @@ export function analyseWeight(weights, settings) {
 
   const latestDate = raw.at(-1).date;
   const chartRangeDays = Number(settings.chartRangeDays) || 0;
-  const chartStart = chartRangeDays > 0 ? addDays(latestDate, -chartRangeDays) : raw[0].date;
+  const configuredChartStart = typeof settings.chartStartDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(settings.chartStartDate)
+    ? settings.chartStartDate
+    : "";
+  const chartStart = configuredChartStart || (chartRangeDays > 0 ? addDays(latestDate, -chartRangeDays) : raw[0].date);
   const trendWindowDays = Number(settings.trendWindowDays) || 28;
   const trendStart = addDays(latestDate, -trendWindowDays);
   const trendSource = smoothed.filter(point => point.date >= trendStart);
   const rawTrendSource = raw.filter(point => point.date >= trendStart);
   const regression = linearRegression(trendSource);
-  const predictionDays = Math.max(1, Number(settings.predictionMonths) || 3) * MONTH_DAYS;
+  const predictionDays = Math.max(1, Math.round(
+    Number(settings.predictionDays) || (Number(settings.predictionMonths) || 3) * 30.4375
+  ));
   const projectedDate = addDays(latestDate, Math.round(predictionDays));
   const forecast = [];
 
