@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="description" content="A local-first personal weight tracker">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+
+  <title>Weight Tracker</title>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">LOCAL WEIGHT LOG</p>
+        <h1>Weight Tracker</h1>
+      </div>
+      <span class="version">Version 1</span>
+    </header>
+
+    <section class="card">
+      <form id="weight-form">
+        <label for="weight">Weight in kilograms</label>
+        <div class="weight-input-row">
+          <input id="weight" name="weight" type="number" inputmode="decimal"
+                 min="20" max="500" step="0.1" placeholder="72.0" required>
+          <span>kg</span>
+        </div>
+
+        <label for="date">Date</label>
+        <input id="date" name="date" type="date" required>
+
+        <button type="submit">Save weight</button>
+        <p id="form-message" class="message" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="section-heading">
+        <h2>Saved entries</h2>
+        <span id="entry-count" class="muted">0 entries</span>
+      </div>
+      <div id="empty-state" class="empty-state">No weights saved yet.</div>
+      <ol id="weight-list" class="weight-list"></ol>
+    </section>
+
+    <p class="storage-note">Your entries are stored locally on this device using IndexedDB.</p>
+  </main>
+
+  <aside id="update-banner" class="update-banner" hidden>
+    <span>A new app version is available.</span>
+    <button id="update-button" type="button">Update now</button>
+  </aside>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>

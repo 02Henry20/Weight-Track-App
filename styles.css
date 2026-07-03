@@ -1,0 +1,155 @@
+:root {
+  color-scheme: light dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f7f8fb;
+  color: #172033;
+  font-synthesis: none;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.15), transparent 34rem),
+    #f7f8fb;
+}
+button, input { font: inherit; }
+button { touch-action: manipulation; }
+.app-shell {
+  width: min(100% - 28px, 680px);
+  margin: 0 auto;
+  padding: max(28px, env(safe-area-inset-top)) 0 calc(36px + env(safe-area-inset-bottom));
+}
+.app-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.eyebrow {
+  margin: 0 0 5px;
+  color: #2563eb;
+  font-size: .75rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+h1, h2, p { margin-top: 0; }
+h1 { margin-bottom: 0; font-size: clamp(2rem, 9vw, 3.25rem); line-height: 1; }
+h2 { margin-bottom: 0; font-size: 1.15rem; }
+.version, .new-feature {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: #1d4ed8;
+  background: #dbeafe;
+  font-size: .76rem;
+  font-weight: 800;
+}
+.card {
+  margin-bottom: 16px;
+  padding: 20px;
+  border: 1px solid rgba(148, 163, 184, .24);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .88);
+  box-shadow: 0 14px 40px rgba(15, 23, 42, .07);
+  backdrop-filter: blur(16px);
+}
+form { display: grid; gap: 10px; }
+label { margin-top: 6px; font-weight: 750; }
+input {
+  width: 100%;
+  min-height: 50px;
+  padding: 11px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 13px;
+  background: #fff;
+  color: #172033;
+  outline: none;
+}
+input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, .13);
+}
+.weight-input-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+.weight-input-row span { color: #64748b; font-weight: 800; }
+button {
+  min-height: 50px;
+  margin-top: 8px;
+  border: 0;
+  border-radius: 13px;
+  padding: 12px 16px;
+  background: #2563eb;
+  color: white;
+  font-weight: 800;
+  cursor: pointer;
+}
+button:active { transform: translateY(1px); }
+.message { min-height: 1.2rem; margin: 0; color: #15803d; font-weight: 650; }
+.message.error { color: #b91c1c; }
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.muted, .storage-note { color: #64748b; }
+.empty-state {
+  padding: 25px 8px;
+  color: #64748b;
+  text-align: center;
+}
+.weight-list { list-style: none; margin: 0; padding: 0; }
+.weight-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 14px 2px;
+  border-top: 1px solid #e2e8f0;
+}
+.weight-item:first-child { border-top: 0; }
+.weight-value { font-size: 1.2rem; font-weight: 850; }
+.weight-date { color: #64748b; font-size: .9rem; }
+.storage-note { padding: 0 8px; text-align: center; font-size: .84rem; }
+.update-banner {
+  position: fixed;
+  right: 14px;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  left: 14px;
+  z-index: 20;
+  max-width: 650px;
+  margin: auto;
+  padding: 12px;
+  border-radius: 17px;
+  background: #172033;
+  color: white;
+  box-shadow: 0 18px 60px rgba(15, 23, 42, .35);
+}
+.update-banner:not([hidden]) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.update-banner button { min-height: 42px; margin: 0; white-space: nowrap; }
+
+@media (prefers-color-scheme: dark) {
+  :root { background: #0b1120; color: #e5e7eb; }
+  body {
+    background:
+      radial-gradient(circle at top right, rgba(59, 130, 246, .2), transparent 34rem),
+      #0b1120;
+  }
+  .card { background: rgba(15, 23, 42, .9); border-color: rgba(148, 163, 184, .18); }
+  input { background: #111827; color: #f8fafc; border-color: #334155; }
+  .weight-item { border-color: #263449; }
+  .muted, .weight-date, .storage-note, .empty-state, .weight-input-row span { color: #94a3b8; }
+  .version { background: rgba(37, 99, 235, .25); color: #93c5fd; }
+}
