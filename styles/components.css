@@ -653,14 +653,6 @@ select:disabled {
   font-weight: 820;
 }
 
-.history-card.collapsed .history-list {
-  display: none;
-}
-
-.history-card.collapsed {
-  padding-bottom: 16px;
-}
-
 .history-empty {
   padding: 34px 10px;
   color: var(--muted);

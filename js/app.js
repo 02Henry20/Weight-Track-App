@@ -8,10 +8,13 @@ import {
 import {
   DEFAULT_GOALS,
   DEFAULT_SETTINGS,
+  clearLastLocalSession,
   connectUserData,
+  connectLocalUserData,
   deleteEntry,
   disconnectUserData,
   exportState,
+  getLastLocalSession,
   hasPendingWrites,
   importState,
   isUsingCacheOnly,
@@ -87,6 +90,7 @@ let activeModalType = null;
 let confirmPreviousModal = null;
 let latestAnalyses = null;
 let renderScheduled = false;
+let localSessionOpen = false;
 
 function setFormMessage(element, text, error = false) {
   element.textContent = text;
@@ -139,10 +143,24 @@ function queueWrite(promise, title, onlineCopy = "Saved on this device and synch
 }
 
 async function initializeAuthentication() {
+  const localSession = getLastLocalSession();
+  let openedLocalSession = false;
+  if (localSession && connectLocalUserData(localSession)) {
+    openedLocalSession = true;
+    localSessionOpen = true;
+    elements.authShell.hidden = true;
+    elements.appShell.hidden = false;
+    elements.userChip.textContent = localSession.email || localSession.uid;
+    elements.settingsUserEmail.textContent = localSession.email || localSession.uid;
+    elements.bootStatus.classList.add("ready");
+    elements.bootText.textContent = "Opened saved device data";
+    navigateTo("overview");
+  }
+
   try {
     await initializeAuthPersistence();
     elements.bootStatus.classList.add("ready");
-    elements.bootText.textContent = "Device storage ready · conflict-safe sync";
+    elements.bootText.textContent = openedLocalSession ? "Saved device data ready · sync when online" : "Device storage ready · conflict-safe sync";
   } catch (error) {
     elements.bootStatus.classList.add("error");
     elements.bootText.textContent = firebaseErrorMessage(error);
@@ -150,6 +168,7 @@ async function initializeAuthentication() {
 
   onAuthStateChanged(auth, async user => {
     if (user) {
+      localSessionOpen = false;
       elements.authShell.hidden = true;
       elements.appShell.hidden = false;
       elements.userChip.textContent = user.email ?? user.uid;
@@ -161,6 +180,7 @@ async function initializeAuthentication() {
         showToast("Synchronization failed", firebaseErrorMessage(error), "error");
       }
     } else {
+      if (localSessionOpen) return;
       if (syncChoiceResolver) resolveSyncChoice("cloud");
       disconnectUserData();
       elements.authShell.hidden = false;
@@ -168,6 +188,20 @@ async function initializeAuthentication() {
       elements.authPassword.value = "";
     }
   });
+}
+
+async function signOutHandler() {
+  localSessionOpen = false;
+  clearLastLocalSession();
+  disconnectUserData();
+  elements.authShell.hidden = false;
+  elements.appShell.hidden = true;
+  elements.authPassword.value = "";
+  try {
+    await signOut(auth);
+  } catch (error) {
+    showToast("Sign out failed", firebaseErrorMessage(error), "error");
+  }
 }
 
 async function signInHandler(event) {
@@ -1097,7 +1131,7 @@ function setupServiceWorker() {
 
 function bindEvents() {
   elements.authForm.addEventListener("submit", signInHandler);
-  elements.signOut.addEventListener("click", () => signOut(auth));
+  elements.signOut.addEventListener("click", signOutHandler);
 
   document.querySelectorAll("[data-view]").forEach(button => {
     button.addEventListener("click", () => navigateTo(button.dataset.view));
@@ -1193,6 +1227,10 @@ function bindEvents() {
   window.addEventListener("online", async () => {
     scheduleRender();
     if (!state.user) return;
+    if (state.user.offlineOnly) {
+      showToast("Online again", "Sign in to sync this device copy with Firebase.");
+      return;
+    }
     try {
       await synchronizeUserData(askSyncChoice, { forcePrompt: true });
     } catch (error) {

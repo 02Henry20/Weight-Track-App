@@ -44,6 +44,7 @@ export const DEFAULT_GOALS = Object.freeze({
 const LOCAL_STATE_VERSION = 1;
 const LOCAL_STATE_PREFIX = "calstat-device-state-v1:";
 const DEVICE_ID_KEY = "calstat-device-id-v1";
+const LAST_SESSION_KEY = "calstat-last-session-v1";
 const TOMBSTONE_COLLECTION = "syncTombstones";
 const DATA_COLLECTIONS = ["weights", "bodyComposition", "calories"];
 
@@ -299,6 +300,56 @@ function persistLocalState() {
     localMeta.hasStoredSnapshot = true;
   } catch (error) {
     console.warn("Could not store CalStat device snapshot:", error);
+  }
+}
+
+function rememberLocalSession(user) {
+  if (!user?.uid) return;
+  try {
+    localStorage.setItem(LAST_SESSION_KEY, JSON.stringify({
+      uid: user.uid,
+      email: user.email ?? "",
+      savedAt: Date.now()
+    }));
+  } catch {
+    // Local session hints are convenience only; the data snapshot is stored separately.
+  }
+}
+
+export function getLastLocalSession() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(LAST_SESSION_KEY) ?? "null");
+    if (parsed?.uid) {
+      return {
+        uid: parsed.uid,
+        email: parsed.email || parsed.uid,
+        savedAt: Number(parsed.savedAt) || 0
+      };
+    }
+
+    let fallback = null;
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (!key?.startsWith(LOCAL_STATE_PREFIX)) continue;
+      const snapshot = JSON.parse(localStorage.getItem(key) ?? "null");
+      if (snapshot?.format !== "calstat-device-state") continue;
+      const uid = snapshot.userId || key.slice(LOCAL_STATE_PREFIX.length);
+      const savedAt = Number(snapshot.savedAt) || 0;
+      if (!fallback || savedAt > fallback.savedAt) {
+        fallback = { uid, email: uid, savedAt };
+      }
+    }
+    return fallback;
+  } catch {
+    return null;
+  }
+}
+
+export function clearLastLocalSession() {
+  try {
+    localStorage.removeItem(LAST_SESSION_KEY);
+  } catch {
+    // Ignore unavailable storage.
   }
 }
 
@@ -718,6 +769,10 @@ function clearPendingFlags(snapshot) {
 
 async function reconcileWithCloud(resolveConflict, { forcePrompt = false } = {}) {
   if (!state.user) return;
+  if (state.user.offlineOnly) {
+    setSyncStatus("offline", "Sign in online to sync this device copy");
+    return;
+  }
   if (!navigator.onLine) {
     setSyncStatus("offline", "Using this device's saved data");
     return;
@@ -856,6 +911,7 @@ function attachRealtimeListeners() {
 export async function connectUserData(user, resolveConflict) {
   disconnectUserData();
   state.user = user;
+  rememberLocalSession(user);
   await firestoreStartup;
 
   if (needsLegacyCacheMigration) {
@@ -879,6 +935,23 @@ export async function connectUserData(user, resolveConflict) {
   else applySnapshot(emptySnapshot(user.uid), { fromCache: true });
   setSyncStatus(navigator.onLine ? "loading" : "offline", navigator.onLine ? "Checking Firebase" : "Using this device's saved data");
   await reconcileWithCloud(resolveConflict);
+}
+
+export function connectLocalUserData(session = getLastLocalSession()) {
+  if (!session?.uid) return false;
+  const localSnapshot = loadLocalSnapshot(session.uid);
+  if (!localSnapshot) return false;
+
+  disconnectUserData();
+  state.user = {
+    uid: session.uid,
+    email: session.email || session.uid,
+    offlineOnly: true
+  };
+  localMeta.hasStoredSnapshot = true;
+  applySnapshot(localSnapshot, { fromCache: true });
+  setSyncStatus("offline", "Opened this device's saved data");
+  return true;
 }
 
 export async function synchronizeUserData(resolveConflict, { forcePrompt = true } = {}) {
@@ -925,6 +998,10 @@ function requireUser() {
   return state.user;
 }
 
+function shouldUseDeviceOnly() {
+  return !navigator.onLine || Boolean(state.user?.offlineOnly);
+}
+
 function upsertLocalEntry(property, entry) {
   const id = entry.id ?? entry.date;
   state[property] = sortByDateDescending([
@@ -949,7 +1026,7 @@ async function saveEntry(collectionName, entry) {
   persistLocalState();
   notify();
 
-  if (!navigator.onLine) {
+  if (shouldUseDeviceOnly()) {
     setSyncStatus("offline", "Saved on this device · cloud sync pending");
     return { queued: true };
   }
@@ -997,7 +1074,7 @@ export async function saveGoals(goals) {
   state.metadata.goals = { fromCache: true, pending: true };
   persistLocalState();
   notify();
-  if (!navigator.onLine) {
+  if (shouldUseDeviceOnly()) {
     setSyncStatus("offline", "Goal saved on this device · cloud sync pending");
     return { queued: true };
   }
@@ -1016,7 +1093,7 @@ export async function saveSettings(settings) {
   state.metadata.settings = { fromCache: true, pending: true };
   persistLocalState();
   notify();
-  if (!navigator.onLine) {
+  if (shouldUseDeviceOnly()) {
     setSyncStatus("offline", "Settings saved on this device · cloud sync pending");
     return { queued: true };
   }
@@ -1040,7 +1117,7 @@ export async function deleteEntry(collectionName, id) {
   persistLocalState();
   notify();
 
-  if (!navigator.onLine) {
+  if (shouldUseDeviceOnly()) {
     setSyncStatus("offline", "Deletion saved on this device · cloud sync pending");
     return { queued: true };
   }
@@ -1138,7 +1215,7 @@ export async function importState(backup) {
   persistLocalState();
   notify();
 
-  if (!navigator.onLine) {
+  if (shouldUseDeviceOnly()) {
     setSyncStatus("offline", "Backup imported on this device · cloud sync pending");
     return;
   }
