@@ -50,7 +50,7 @@ import {
   redrawOnResize
 } from "./charts.js";
 
-const APP_VERSION = "2.4.1";
+const APP_VERSION = "2.4.2";
 
 const VIEW_LABELS = {
   overview: ["TODAY'S SIGNAL", "Overview"],
@@ -675,8 +675,8 @@ function updateSyncStatus() {
   if (elements.mobileSyncPill) {
     elements.mobileSyncPill.hidden = false;
     elements.mobileSyncPill.className = `${className} mobile-sync-pill`;
-    elements.mobileSyncLabel.textContent = label;
-    elements.mobileSyncDetail.textContent = detail;
+    elements.mobileSyncLabel.textContent = label === "Synced" ? "Synced" : label === "Device only" ? "Device only" : label;
+    elements.mobileSyncDetail.textContent = "";
   }
 
   const syncButton = document.querySelector("#sync-now-button");
@@ -799,7 +799,7 @@ function renderTrends(analyses) {
   const predictionDays = Number(state.settings.predictionDays) || Math.round((Number(state.settings.predictionMonths) || 3) * 30.4375);
   const trendWindowBadge = document.querySelector("#trend-window-badge");
   if (trendWindowBadge) {
-    trendWindowBadge.innerHTML = `<span>${state.settings.trendWindowDays}-day model</span><span>${predictionDays}-day forecast</span>`;
+    trendWindowBadge.innerHTML = `<span>${state.settings.trendWindowDays}-day model</span><span>${predictionDays}-day view</span>`;
   }
   setText("#trend-current", weight.current == null ? "—" : `${weight.current.toFixed(1)} kg`);
   setText("#trend-rate", weight.weeklyRate == null ? "—" : `${formatSigned(weight.weeklyRate, 2)} kg/week`);
