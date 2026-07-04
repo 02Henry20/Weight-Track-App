@@ -851,6 +851,21 @@ select:disabled {
   color: var(--muted);
 }
 
+@media (min-width: 901px) {
+  .goal-forecast-card > .eyebrow,
+  .goal-forecast-card > h3 {
+    text-align: center;
+  }
+
+  .goal-forecast-card > h3 {
+    max-width: 760px;
+    margin: 0 auto;
+    font-size: clamp(1.45rem, 2.2vw, 2.15rem);
+    line-height: 1.18;
+    text-wrap: balance;
+  }
+}
+
 .settings-form,
 .settings-card {
   display: grid;

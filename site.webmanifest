@@ -3,7 +3,7 @@
   "name": "CalStat",
   "short_name": "CalStat",
   "description": "Weight, nutrition, body-composition and progress analytics in one private tracker.",
-  "version": "2.4.2",
+  "version": "2.4.3",
   "lang": "en",
   "start_url": "./",
   "scope": "./",
