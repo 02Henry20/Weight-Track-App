@@ -161,8 +161,8 @@
                 <div><p class="eyebrow">TARGET</p><h3>Weight goal</h3></div>
                 <button class="icon-button" data-go-view="goals" type="button" aria-label="Open goals">→</button>
               </div>
-              <div class="goal-countdown" aria-label="Estimated time to target">
-                <span class="goal-countdown-icon" aria-hidden="true">⌛</span>
+              <div class="goal-countdown" aria-label="Distance to target weight">
+                <span class="goal-countdown-icon" aria-hidden="true">◎</span>
                 <div class="goal-countdown-copy">
                   <strong id="goal-days-value">—</strong>
                   <span id="goal-days-label">Set a target weight</span>
@@ -297,7 +297,6 @@
             <article class="chart-card glass-panel span-2 physique-map-card">
               <div class="panel-heading">
                 <div><p class="eyebrow">PHYSIQUE MAP</p><h3>Body fat vs <span id="map-metric-name">FFMI</span></h3></div>
-                <span class="metric-tag">Reference view</span>
               </div>
               <div class="chart-wrap physique-map-wrap"><canvas id="physique-map-chart"></canvas><div class="chart-empty" data-empty-for="physique-map-chart">Add body-fat data and set your height.</div></div>
             </article>
@@ -352,16 +351,22 @@
                   <input id="setting-smoothing" type="number" min="1" max="90" step="1" inputmode="numeric">
                 </div>
                 <div class="field setting-field">
-                  <div class="field-label-row"><label for="setting-trend-window">Trend analysis window (days)</label><details class="setting-help"><summary aria-label="Explain trend window">i</summary><p>Controls how many recent days are used to estimate weight velocity and the current diet phase.</p></details></div>
-                  <input id="setting-trend-window" type="number" min="7" max="730" step="1" inputmode="numeric">
+                  <div class="field-label-row"><label for="setting-trend-window">Trend analysis window (days)</label><details class="setting-help"><summary aria-label="Explain trend window">i</summary><p>Controls how many recent days are used to estimate weight velocity and the current diet phase. Labels are Cut, Maintain, Bulk, Diet break and Deload. Deload is a low-confidence recovery-pattern guess because training load is not tracked.</p></details></div>
+                  <div class="field-action-row">
+                    <input id="setting-trend-window" type="number" min="7" max="730" step="1" inputmode="numeric">
+                    <button id="optimize-trend-window" class="secondary-button compact" type="button">Min volatility</button>
+                  </div>
                 </div>
                 <div class="field setting-field">
                   <div class="field-label-row"><label for="setting-trend-confidence">Analysis quality panel</label><details class="setting-help"><summary aria-label="Explain analysis quality panel">i</summary><p>Shows maintenance-model readiness, measurement sufficiency and weight volatility together beside the chart.</p></details></div>
                   <select id="setting-trend-confidence"><option value="on">Show combined quality panel</option><option value="off">Hide combined quality panel</option></select>
                 </div>
                 <div class="field setting-field">
-                  <div class="field-label-row"><label for="setting-maintenance-window">Maintenance estimation window (days)</label><details class="setting-help"><summary aria-label="Explain maintenance window">i</summary><p>Sets the period used to connect average calorie intake with measured weight change.</p></details></div>
-                  <input id="setting-maintenance-window" type="number" min="7" max="730" step="1" inputmode="numeric">
+                  <div class="field-label-row"><label for="setting-maintenance-window">Maintenance estimation window (days)</label><details class="setting-help"><summary aria-label="Explain maintenance window">i</summary><p>Maintenance uses average logged kcal/day minus the weight-change slope times the kcal/kg setting. Missing calorie days lower coverage, so a week with only weight can make the estimate poor. The button picks the window with the best blend of calorie coverage, weight count, confidence and uncertainty.</p></details></div>
+                  <div class="field-action-row">
+                    <input id="setting-maintenance-window" type="number" min="7" max="730" step="1" inputmode="numeric">
+                    <button id="optimize-maintenance-window" class="secondary-button compact" type="button">Best quality</button>
+                  </div>
                 </div>
                 <div class="field setting-field">
                   <div class="field-label-row"><label for="setting-prediction-days">Prediction horizon (days)</label><details class="setting-help"><summary aria-label="Explain prediction horizon">i</summary><p>Sets how far the current weight trend is projected into the future. Longer forecasts are less certain.</p></details></div>

@@ -858,7 +858,7 @@ select:disabled {
 }
 
 .plot-note {
-  margin-top: 6px;
+  margin-top: 2px;
 }
 
 .modal-backdrop {
@@ -1141,6 +1141,20 @@ select:disabled {
   background:
     radial-gradient(circle at 14% 8%, rgba(var(--accent-2-rgb), 0.16), transparent 55%),
     linear-gradient(145deg, rgba(var(--accent-rgb), 0.08), rgba(255, 255, 255, 0.018));
+  overflow: hidden;
+  position: relative;
+}
+
+.goal-countdown::after {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  left: 16px;
+  height: 5px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.72), rgba(var(--accent-2-rgb), 0.92), rgba(var(--warm-rgb), 0.55));
+  content: "";
+  opacity: 0.72;
 }
 
 .goal-countdown-icon {
@@ -1180,6 +1194,7 @@ select:disabled {
   color: var(--muted);
   font-size: 0.72rem;
   line-height: 1.4;
+  padding-bottom: 8px;
 }
 
 .action-symbol {
@@ -1415,6 +1430,19 @@ select:disabled {
   font-size: 0.76rem;
   font-weight: 520;
   line-height: 1.48;
+}
+
+.field-action-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.secondary-button.compact {
+  min-height: 42px;
+  padding: 0 13px;
+  white-space: nowrap;
 }
 
 .body-chart-grid .chart-card {

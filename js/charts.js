@@ -415,7 +415,8 @@ export function drawBodyCompositionChart(canvas, bodyAnalysis) {
   if (!available) return;
 
   const { context, width, height } = prepareCanvas(canvas);
-  const area = chartArea(width, height, { left: 58, right: 24, bottom: 38 });
+  const compact = width <= 560;
+  const area = chartArea(width, height, { left: 58, right: compact ? 88 : 116, bottom: 38 });
   const [minTime, maxTime] = dateExtent([entries]);
   const leanValues = entries.map(point => point.leanMass);
   const fatMassValues = entries.map(point => point.fatMass);
@@ -439,6 +440,32 @@ export function drawBodyCompositionChart(canvas, bodyAnalysis) {
   context.textAlign = "left";
   context.fillStyle = COLORS.cyan;
   context.fillText("Lean kg", area.left, area.top - 9);
+  context.textAlign = "right";
+  context.fillStyle = COLORS.yellow;
+  context.fillText("Fat kg", area.right + (compact ? 42 : 52), area.top - 9);
+  context.fillStyle = COLORS.purple;
+  context.fillText("BF %", area.right + (compact ? 82 : 108), area.top - 9);
+  context.restore();
+
+  context.save();
+  context.font = `${compact ? 10 : 11}px system-ui, sans-serif`;
+  context.textBaseline = "middle";
+  for (let index = 0; index <= 4; index += 1) {
+    const ratio = index / 4;
+    const y = area.bottom - ratio * (area.bottom - area.top);
+    const fatMassValue = fatMassMin + ratio * (fatMassMax - fatMassMin);
+    const fatPercentValue = fatPercentMin + ratio * (fatPercentMax - fatPercentMin);
+    context.fillStyle = COLORS.yellow;
+    context.textAlign = "right";
+    context.fillText(formatAxisNumber(fatMassValue), area.right + (compact ? 40 : 52), y);
+    context.fillStyle = COLORS.purple;
+    context.fillText(`${formatAxisNumber(fatPercentValue)}%`, area.right + (compact ? 82 : 108), y);
+  }
+  context.strokeStyle = "rgba(142, 161, 185, 0.18)";
+  context.beginPath();
+  context.moveTo(area.right, area.top);
+  context.lineTo(area.right, area.bottom);
+  context.stroke();
   context.restore();
 
   const leanPoints = drawLine(context, entries.map(point => ({ date: point.date, value: point.leanMass })), xScale, leanScale, {
@@ -518,7 +545,8 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
   if (!available) return;
 
   const { context, width, height } = prepareCanvas(canvas, { maxDpr: 4, minDpr: 2 });
-  const area = chartArea(width, height, { left: 94, right: 20, top: 18, bottom: 68 });
+  const compact = width <= 560;
+  const area = chartArea(width, height, { left: compact ? 82 : 94, right: compact ? 14 : 20, top: 18, bottom: compact ? 86 : 68 });
   const xBands = bodyFatBands(settings.referenceSex);
   const yBands = metricBands(metric, settings.referenceSex);
   const xMin = xBands[0].min;
@@ -541,10 +569,10 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
     context.lineTo(left, area.bottom);
     context.stroke();
     context.fillStyle = COLORS.text;
-    context.font = "600 11px system-ui, sans-serif";
-    if (right - left > 34) {
+    context.font = `600 ${compact ? 9 : 11}px system-ui, sans-serif`;
+    if (right - left > (compact ? 15 : 34)) {
       context.save();
-      context.translate((left + right) / 2, area.bottom + 8);
+      context.translate((left + right) / 2, area.bottom + (compact ? 7 : 8));
       context.rotate(Math.PI / 2);
       context.textAlign = "left";
       context.textBaseline = "middle";
@@ -576,7 +604,7 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
     context.lineTo(area.right, yTop);
     context.stroke();
     context.fillStyle = COLORS.text;
-    context.font = "600 11px system-ui, sans-serif";
+    context.font = `600 ${compact ? 9 : 11}px system-ui, sans-serif`;
     context.textAlign = "right";
     context.textBaseline = "middle";
     context.fillText(band.label, area.left - 10, (yTop + yBottom) / 2);
@@ -589,8 +617,8 @@ export function drawPhysiqueMap(canvas, bodyAnalysis, settings) {
   context.fillStyle = COLORS.text;
   context.font = "700 12px system-ui, sans-serif";
   context.textAlign = "center";
-  context.fillText("Body fat %", (area.left + area.right) / 2, height - 8);
-  context.font = "600 11px system-ui, sans-serif";
+  context.fillText("Body fat %", (area.left + area.right) / 2, height - (compact ? 7 : 8));
+  context.font = `600 ${compact ? 10 : 11}px system-ui, sans-serif`;
   context.textAlign = "left";
   context.fillText("Leaner", area.left, area.top - 8);
   context.textAlign = "right";

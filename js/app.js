@@ -32,6 +32,8 @@ import {
   analyseMaintenance,
   analyseWeight,
   buildInsight,
+  findBestMaintenanceWindow,
+  findBestTrendWindow,
   addDays,
   formatLongDate,
   round,
@@ -661,13 +663,13 @@ function renderOverview(analyses) {
     goalDaysLabel.textContent = "Target achieved";
     goalCountdownMeta.textContent = "You are at the configured target weight.";
   } else if (goals.etaDays != null && goals.etaDate) {
+    goalDaysValue.textContent = `${Math.abs(goalDifference).toFixed(1)} kg`;
+    goalDaysLabel.textContent = goalDifference > 0 ? "to gain until target" : "to lose until target";
     const daysLeft = Math.max(1, Math.ceil(goals.etaDays));
-    goalDaysValue.textContent = `${daysLeft.toLocaleString()} day${daysLeft === 1 ? "" : "s"}`;
-    goalDaysLabel.textContent = "estimated until target";
-    goalCountdownMeta.textContent = "";
+    goalCountdownMeta.textContent = `${daysLeft.toLocaleString()} day${daysLeft === 1 ? "" : "s"} · ETA ${formatLongDate(goals.etaDate)}`;
   } else {
-    goalDaysValue.textContent = "No ETA";
-    goalDaysLabel.textContent = `${Math.abs(goalDifference).toFixed(1)} kg left · recent trend is not aligned`;
+    goalDaysValue.textContent = `${Math.abs(goalDifference).toFixed(1)} kg`;
+    goalDaysLabel.textContent = goalDifference > 0 ? "to gain · trend not aligned" : "to lose · trend not aligned";
     goalCountdownMeta.textContent = "Log more aligned measurements to estimate the date.";
   }
   setText("#goal-target-weight", goals.targetWeight == null ? "—" : `${goals.targetWeight.toFixed(1)} kg`);
@@ -861,6 +863,58 @@ function renderSettings() {
   setText("#settings-body-count", state.bodyEntries.length.toString());
   setText("#settings-calorie-count", state.calorieEntries.length.toString());
   setText("#settings-app-version", `CalStat ${APP_VERSION}`);
+}
+
+function currentSettingsFromForm() {
+  return {
+    ...state.settings,
+    smoothingDays: Number(document.querySelector("#setting-smoothing").value) || state.settings.smoothingDays,
+    trendWindowDays: Number(document.querySelector("#setting-trend-window").value) || state.settings.trendWindowDays,
+    maintenanceWindowDays: Number(document.querySelector("#setting-maintenance-window").value) || state.settings.maintenanceWindowDays,
+    energyDensityKcalPerKg: Number(document.querySelector("#setting-energy-density").value) || state.settings.energyDensityKcalPerKg
+  };
+}
+
+function useBestMaintenanceWindow() {
+  const best = findBestMaintenanceWindow(state.weights, state.calorieEntries, currentSettingsFromForm());
+  if (!best) {
+    showToast("No reliable window yet", "Add at least four weight entries and four calorie days in the same period.", "error");
+    return;
+  }
+
+  document.querySelector("#setting-maintenance-window").value = String(best.windowDays);
+  setText(
+    "#settings-message",
+    `Maintenance window set to ${best.windowDays} days (${best.confidenceScore}% quality, ${Math.round(best.calorieCoverage * 100)}% calorie coverage). Save settings to apply.`
+  );
+}
+
+function useLowestVolatilityTrendWindow() {
+  const best = findBestTrendWindow(state.weights, currentSettingsFromForm());
+  if (!best) {
+    showToast("No stable trend window yet", "Add at least three weight measurements across several days.", "error");
+    return;
+  }
+
+  document.querySelector("#setting-trend-window").value = String(best.windowDays);
+  setText(
+    "#settings-message",
+    `Trend window set to ${best.windowDays} days (${best.dataSufficiencyScore}% data sufficiency, ${best.volatilityScore}% volatility). Save settings to apply.`
+  );
+}
+
+function bindSettingHelpDismissal() {
+  document.addEventListener("click", event => {
+    document.querySelectorAll(".setting-help[open]").forEach(details => {
+      if (!details.contains(event.target)) details.removeAttribute("open");
+    });
+  });
+
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+      document.querySelectorAll(".setting-help[open]").forEach(details => details.removeAttribute("open"));
+    }
+  });
 }
 
 function calculateAnalyses() {
@@ -1061,6 +1115,8 @@ function bindEvents() {
   document.querySelector("#setting-chart-scale-mode").addEventListener("change", event => {
     document.querySelector("#chart-fixed-range-fields")?.classList.toggle("hidden", event.target.value !== "fixed");
   });
+  document.querySelector("#optimize-maintenance-window")?.addEventListener("click", useBestMaintenanceWindow);
+  document.querySelector("#optimize-trend-window")?.addEventListener("click", useLowestVolatilityTrendWindow);
 
   document.querySelector("#weight-form").addEventListener("submit", submitWeight);
   document.querySelector("#body-form").addEventListener("submit", submitBody);
@@ -1096,6 +1152,7 @@ function bindEvents() {
     }
   });
   window.addEventListener("offline", scheduleRender);
+  bindSettingHelpDismissal();
   redrawOnResize(renderActiveCharts);
 }
 

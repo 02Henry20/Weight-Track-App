@@ -20,6 +20,28 @@
   }
 }
 
+@keyframes mobile-card-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mobile-nav-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 0 rgba(var(--accent-2-rgb), 0));
+    transform: translateY(0);
+  }
+  50% {
+    filter: drop-shadow(0 0 10px rgba(var(--accent-2-rgb), 0.34));
+    transform: translateY(-1px);
+  }
+}
+
 @media (max-width: 900px) {
   :root {
     --topbar-height: 74px;
@@ -112,6 +134,7 @@
     background: transparent;
     color: var(--muted);
     cursor: pointer;
+    transition: transform 180ms ease, background 180ms ease, color 180ms ease, box-shadow 180ms ease;
   }
 
   .mobile-nav button.active {
@@ -120,11 +143,28 @@
     box-shadow: inset 0 0 18px rgba(var(--accent-2-rgb), 0.09), 0 7px 18px rgba(var(--accent-rgb), 0.14);
   }
 
+  .mobile-nav button:active {
+    transform: translateY(1px) scale(0.97);
+  }
+
   .mobile-nav button span {
     color: var(--blue-bright);
     font-size: 1.48rem;
     font-weight: 780;
     line-height: 1;
+  }
+
+  :root[data-motion="on"] .mobile-nav button.active span {
+    animation: mobile-nav-glow 2.8s ease-in-out infinite;
+  }
+
+  :root[data-motion="on"] .view-section.active .metric-card,
+  :root[data-motion="on"] .view-section.active .chart-card,
+  :root[data-motion="on"] .view-section.active .goal-card,
+  :root[data-motion="on"] .view-section.active .quick-actions,
+  :root[data-motion="on"] .view-section.active .history-card,
+  :root[data-motion="on"] .view-section.active .settings-card {
+    animation: mobile-card-rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
   .mobile-nav button small {
@@ -271,6 +311,10 @@
 
   .quick-action-grid button > span {
     grid-row: span 2;
+  }
+
+  .field-action-row {
+    grid-template-columns: 1fr;
   }
 
   .formula-note {

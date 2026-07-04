@@ -492,6 +492,68 @@ export function analyseMaintenance(weights, calorieEntries, settings) {
   };
 }
 
+export function findBestMaintenanceWindow(weights, calorieEntries, settings = {}) {
+  const candidates = [14, 21, 28, 35, 42, 56, 70, 90, 120, 180];
+  const rawWeights = chronologicalWeights(weights);
+  const latestDate = rawWeights.at(-1)?.date;
+  if (!latestDate) return null;
+
+  return candidates.reduce((best, windowDays) => {
+    const analysis = analyseMaintenance(weights, calorieEntries, { ...settings, maintenanceWindowDays: windowDays });
+    const current = analysis.current;
+    if (!current || current.estimate == null) return best;
+
+    const uncertaintyPenalty = current.uncertainty == null ? 1 : clamp(current.uncertainty / 600, 0, 1);
+    const measurementScore = clamp(current.weightCount / Math.max(6, windowDays * 0.45), 0, 1);
+    const coverageScore = clamp(current.calorieCoverage, 0, 1);
+    const score = Math.round(
+      (current.confidenceScore * 0.52)
+      + (coverageScore * 26)
+      + (measurementScore * 14)
+      - (uncertaintyPenalty * 12)
+    );
+
+    const candidate = {
+      windowDays,
+      score,
+      estimate: current.estimate,
+      confidenceScore: current.confidenceScore,
+      calorieCoverage: current.calorieCoverage,
+      weightCount: current.weightCount,
+      uncertainty: current.uncertainty
+    };
+    return !best || candidate.score > best.score ? candidate : best;
+  }, null);
+}
+
+export function findBestTrendWindow(weights, settings = {}) {
+  const candidates = [7, 10, 14, 21, 28, 35, 42, 56, 70, 90, 120, 180];
+
+  return candidates.reduce((best, windowDays) => {
+    const analysis = analyseWeight(weights, { ...settings, trendWindowDays: windowDays });
+    const confidence = analysis.trendConfidence;
+    if (!analysis.regression || !confidence || confidence.measurementCount < 3) return best;
+
+    const volatilityCalm = 100 - confidence.volatilityScore;
+    const spanScore = clamp(confidence.spanDays / Math.max(7, windowDays * 0.55), 0, 1) * 100;
+    const score = Math.round(
+      confidence.dataSufficiencyScore * 0.42
+      + volatilityCalm * 0.38
+      + spanScore * 0.2
+    );
+
+    const candidate = {
+      windowDays,
+      score,
+      dataSufficiencyScore: confidence.dataSufficiencyScore,
+      volatilityScore: confidence.volatilityScore,
+      volatilityKg: confidence.volatilityKg,
+      measurementCount: confidence.measurementCount
+    };
+    return !best || candidate.score > best.score ? candidate : best;
+  }, null);
+}
+
 export function bmiCategory(bmi) {
   if (!Number.isFinite(bmi)) return "No value";
   if (bmi < 18.5) return "Underweight range";
