@@ -145,10 +145,10 @@
 
 .nav-icon {
   display: grid;
-  width: 42px;
+  width: 48px;
   place-items: center;
   color: var(--blue-bright);
-  font-size: 1.82rem;
+  font-size: 2.18rem;
   font-weight: 780;
   line-height: 1;
 }
@@ -204,10 +204,26 @@
 
 .topbar .eyebrow {
   margin-bottom: 3px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 3px 9px;
+  border: 1px solid rgba(var(--accent-rgb), 0.22);
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.075);
+  color: var(--cyan);
+  box-shadow: 0 0 22px rgba(var(--accent-rgb), 0.08);
 }
 
 .topbar h2 {
-  font-size: 1.55rem;
+  font-size: clamp(1.75rem, 2.8vw, 2.45rem);
+  line-height: 0.95;
+  letter-spacing: 0;
+  background: linear-gradient(115deg, var(--text), var(--blue-bright) 52%, var(--cyan));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 12px 34px rgba(var(--accent-rgb), 0.16);
 }
 
 .topbar-actions {

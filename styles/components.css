@@ -633,6 +633,34 @@ select:disabled {
     transparent border-box;
 }
 
+.history-heading-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-toggle {
+  display: none;
+  min-height: 30px;
+  align-items: center;
+  border: 1px solid rgba(var(--accent-rgb), 0.28);
+  border-radius: 999px;
+  padding: 0 11px;
+  background: rgba(var(--accent-rgb), 0.08);
+  color: var(--blue-bright);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 820;
+}
+
+.history-card.collapsed .history-list {
+  display: none;
+}
+
+.history-card.collapsed {
+  padding-bottom: 16px;
+}
+
 .history-empty {
   padding: 34px 10px;
   color: var(--muted);
@@ -1132,7 +1160,7 @@ select:disabled {
   flex: 1;
   align-content: center;
   align-items: center;
-  gap: 17px;
+  gap: 22px;
   min-height: 176px;
   margin: 12px 0 16px;
   padding: 22px 20px;
@@ -1172,7 +1200,7 @@ select:disabled {
 
 .goal-countdown-copy {
   display: grid;
-  gap: 6px;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -1465,17 +1493,21 @@ select:disabled {
 
 @media (max-width: 680px) {
   .goal-countdown {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    min-height: 164px;
-    padding: 18px;
-    text-align: center;
+    grid-template-columns: auto minmax(0, 1fr);
+    justify-items: stretch;
+    min-height: 176px;
+    padding: 20px;
+    text-align: left;
   }
 
   .goal-countdown-icon {
-    width: 50px;
-    height: 50px;
-    font-size: 1.45rem;
+    width: 56px;
+    height: 56px;
+    font-size: 1.65rem;
+  }
+
+  .goal-countdown-copy {
+    gap: 13px;
   }
 
   .body-composition-wrap {

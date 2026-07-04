@@ -196,8 +196,31 @@ function navigateTo(view) {
 
   elements.viewKicker.textContent = VIEW_LABELS[view][0];
   elements.viewTitle.textContent = VIEW_LABELS[view][1];
+  if (view === "log" && window.matchMedia("(max-width: 900px)").matches) {
+    setLogHistoriesCollapsed(true);
+  }
   document.querySelector(".content-scroll")?.scrollTo({ top: 0, behavior: "smooth" });
   window.requestAnimationFrame(renderActiveCharts);
+}
+
+function setLogHistoriesCollapsed(collapsed) {
+  document.querySelectorAll("[data-history-card]").forEach(card => {
+    card.classList.toggle("collapsed", collapsed);
+    const toggle = card.querySelector("[data-history-toggle]");
+    if (toggle) {
+      toggle.setAttribute("aria-expanded", String(!collapsed));
+      toggle.textContent = collapsed ? "Show" : "Hide";
+    }
+  });
+}
+
+function toggleHistoryCard(button) {
+  const card = button.closest("[data-history-card]");
+  if (!card) return;
+  const collapsed = !card.classList.contains("collapsed");
+  card.classList.toggle("collapsed", collapsed);
+  button.setAttribute("aria-expanded", String(!collapsed));
+  button.textContent = collapsed ? "Show" : "Hide";
 }
 
 function openModal(type) {
@@ -904,16 +927,38 @@ function useLowestVolatilityTrendWindow() {
 }
 
 function bindSettingHelpDismissal() {
-  document.addEventListener("click", event => {
+  document.addEventListener("pointerdown", event => {
     document.querySelectorAll(".setting-help[open]").forEach(details => {
       if (!details.contains(event.target)) details.removeAttribute("open");
     });
-  });
+  }, true);
 
   document.addEventListener("keydown", event => {
     if (event.key === "Escape") {
       document.querySelectorAll(".setting-help[open]").forEach(details => details.removeAttribute("open"));
     }
+  });
+}
+
+function bindTouchSafeAction(selector, handler) {
+  const button = document.querySelector(selector);
+  if (!button) return;
+  let handledByPointer = false;
+
+  button.addEventListener("pointerup", event => {
+    if (event.pointerType !== "touch" && event.pointerType !== "pen") return;
+    event.preventDefault();
+    handledByPointer = true;
+    window.setTimeout(() => { handledByPointer = false; }, 450);
+    handler();
+  });
+
+  button.addEventListener("click", event => {
+    if (handledByPointer) {
+      event.preventDefault();
+      return;
+    }
+    handler();
   });
 }
 
@@ -1115,8 +1160,11 @@ function bindEvents() {
   document.querySelector("#setting-chart-scale-mode").addEventListener("change", event => {
     document.querySelector("#chart-fixed-range-fields")?.classList.toggle("hidden", event.target.value !== "fixed");
   });
-  document.querySelector("#optimize-maintenance-window")?.addEventListener("click", useBestMaintenanceWindow);
-  document.querySelector("#optimize-trend-window")?.addEventListener("click", useLowestVolatilityTrendWindow);
+  bindTouchSafeAction("#optimize-maintenance-window", useBestMaintenanceWindow);
+  bindTouchSafeAction("#optimize-trend-window", useLowestVolatilityTrendWindow);
+  document.querySelectorAll("[data-history-toggle]").forEach(button => {
+    button.addEventListener("click", () => toggleHistoryCard(button));
+  });
 
   document.querySelector("#weight-form").addEventListener("submit", submitWeight);
   document.querySelector("#body-form").addEventListener("submit", submitBody);

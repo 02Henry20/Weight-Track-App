@@ -112,7 +112,7 @@
     z-index: 40;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    padding: 6px;
+    padding: 7px;
     border: 1px solid var(--line);
     border-radius: 19px;
     background: rgba(7, 17, 30, 0.94);
@@ -126,7 +126,7 @@
 
   .mobile-nav button {
     display: grid;
-    min-height: 52px;
+    min-height: 58px;
     place-items: center;
     gap: 2px;
     border: 0;
@@ -149,7 +149,7 @@
 
   .mobile-nav button span {
     color: var(--blue-bright);
-    font-size: 1.48rem;
+    font-size: 1.78rem;
     font-weight: 780;
     line-height: 1;
   }
@@ -169,8 +169,12 @@
 
   .mobile-nav button small {
     color: inherit;
-    font-size: 0.61rem;
+    font-size: 0.64rem;
     font-weight: 690;
+  }
+
+  .history-toggle {
+    display: inline-flex;
   }
 
   .dashboard-grid,
@@ -225,13 +229,17 @@
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 249, 255, 0.88));
   }
 
-  .topbar .eyebrow,
   .user-chip {
     display: none;
   }
 
+  .topbar .eyebrow {
+    font-size: 0.62rem;
+    padding: 2px 8px;
+  }
+
   .topbar h2 {
-    font-size: 1.25rem;
+    font-size: 1.72rem;
   }
 
   .topbar-actions {
