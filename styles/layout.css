@@ -217,9 +217,10 @@
 
 .topbar h2 {
   font-size: clamp(1.75rem, 2.8vw, 2.45rem);
-  line-height: 1.12;
+  display: inline-block;
+  line-height: 1.22;
   letter-spacing: 0;
-  padding-bottom: 3px;
+  padding-bottom: 7px;
   background: linear-gradient(115deg, var(--text), var(--blue-bright) 52%, var(--cyan));
   -webkit-background-clip: text;
   background-clip: text;
@@ -231,6 +232,10 @@
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.mobile-sync-pill {
+  display: none;
 }
 
 .content-scroll {

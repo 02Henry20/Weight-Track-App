@@ -50,7 +50,7 @@ import {
   redrawOnResize
 } from "./charts.js";
 
-const APP_VERSION = "2.3.0";
+const APP_VERSION = "2.4.1";
 
 const VIEW_LABELS = {
   overview: ["TODAY'S SIGNAL", "Overview"],
@@ -76,6 +76,9 @@ const elements = {
   syncPill: document.querySelector("#sync-pill"),
   syncLabel: document.querySelector("#sync-label"),
   syncDetail: document.querySelector("#sync-detail"),
+  mobileSyncPill: document.querySelector("#mobile-sync-pill"),
+  mobileSyncLabel: document.querySelector("#mobile-sync-label"),
+  mobileSyncDetail: document.querySelector("#mobile-sync-detail"),
   viewKicker: document.querySelector("#view-kicker"),
   viewTitle: document.querySelector("#view-title"),
   modalBackdrop: document.querySelector("#modal-backdrop"),
@@ -638,27 +641,48 @@ function formatSigned(value, digits = 1, suffix = "") {
 function updateSyncStatus() {
   const pending = hasPendingWrites();
   const sync = state.sync;
+  const firebaseUnavailable = Boolean(state.user?.offlineOnly) || !navigator.onLine || sync.status === "offline";
+  let className = "sync-pill";
+  let label = "Connecting";
+  let detail = sync.detail || "Checking data";
 
-  if (!navigator.onLine || sync.status === "offline") {
-    elements.syncPill.className = "sync-pill offline";
-    elements.syncLabel.textContent = pending ? "Offline · pending" : "Device only";
-    elements.syncDetail.textContent = pending ? "Review sync when online" : "Saved on this device";
+  if (firebaseUnavailable) {
+    className = "sync-pill offline";
+    label = pending ? "Firebase unavailable" : "Device only";
+    detail = pending ? "Saved locally; sign in online to sync" : "No Firebase connection";
   } else if (sync.status === "conflict") {
-    elements.syncPill.className = "sync-pill conflict";
-    elements.syncLabel.textContent = "Sync choice needed";
-    elements.syncDetail.textContent = "Cloud and device differ";
+    className = "sync-pill conflict";
+    label = "Sync choice needed";
+    detail = "Cloud and device differ";
   } else if (sync.status === "error") {
-    elements.syncPill.className = "sync-pill error";
-    elements.syncLabel.textContent = "Sync error";
-    elements.syncDetail.textContent = sync.detail;
+    className = "sync-pill error";
+    label = "Firebase error";
+    detail = sync.detail;
   } else if (pending || sync.status === "loading" || isUsingCacheOnly()) {
-    elements.syncPill.className = "sync-pill";
-    elements.syncLabel.textContent = pending ? "Changes pending" : "Comparing data";
-    elements.syncDetail.textContent = sync.detail || "Checking Firebase";
+    className = "sync-pill";
+    label = pending ? "Changes pending" : "Comparing data";
+    detail = sync.detail || "Checking Firebase";
   } else {
-    elements.syncPill.className = "sync-pill synced";
-    elements.syncLabel.textContent = "Synced";
-    elements.syncDetail.textContent = sync.detail || "Device and Firebase aligned";
+    className = "sync-pill synced";
+    label = "Synced";
+    detail = sync.detail || "Device and Firebase aligned";
+  }
+
+  elements.syncPill.className = className;
+  elements.syncLabel.textContent = label;
+  elements.syncDetail.textContent = detail;
+
+  if (elements.mobileSyncPill) {
+    elements.mobileSyncPill.hidden = false;
+    elements.mobileSyncPill.className = `${className} mobile-sync-pill`;
+    elements.mobileSyncLabel.textContent = label;
+    elements.mobileSyncDetail.textContent = detail;
+  }
+
+  const syncButton = document.querySelector("#sync-now-button");
+  if (syncButton) {
+    syncButton.disabled = firebaseUnavailable;
+    syncButton.title = firebaseUnavailable ? "Firebase is unavailable. Sign in online before synchronizing." : "";
   }
 }
 
@@ -773,7 +797,10 @@ function renderLog() {
 function renderTrends(analyses) {
   const { weight, maintenance, dietPhase } = analyses;
   const predictionDays = Number(state.settings.predictionDays) || Math.round((Number(state.settings.predictionMonths) || 3) * 30.4375);
-  setText("#trend-window-badge", `${state.settings.trendWindowDays}-day model · ${predictionDays}-day forecast`);
+  const trendWindowBadge = document.querySelector("#trend-window-badge");
+  if (trendWindowBadge) {
+    trendWindowBadge.innerHTML = `<span>${state.settings.trendWindowDays}-day model</span><span>${predictionDays}-day forecast</span>`;
+  }
   setText("#trend-current", weight.current == null ? "—" : `${weight.current.toFixed(1)} kg`);
   setText("#trend-rate", weight.weeklyRate == null ? "—" : `${formatSigned(weight.weeklyRate, 2)} kg/week`);
   setText("#trend-projected", weight.projectedWeight == null ? "—" : `${weight.projectedWeight.toFixed(1)} kg`);

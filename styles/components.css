@@ -96,7 +96,7 @@ button:active {
 button:disabled,
 input:disabled,
 select:disabled {
-  cursor: wait;
+  cursor: not-allowed;
   opacity: 0.55;
 }
 
@@ -229,6 +229,20 @@ select:disabled {
   color: var(--muted);
   font-size: 0.72rem;
   font-weight: 740;
+}
+
+.confidence-badge {
+  white-space: nowrap;
+}
+
+#trend-window-badge {
+  white-space: nowrap;
+}
+
+#trend-window-badge span + span::before {
+  margin: 0 6px;
+  color: var(--muted);
+  content: "·";
 }
 
 .confidence-badge.medium { color: #ffd782; border-color: rgba(240, 187, 69, 0.25); background: rgba(240, 187, 69, 0.08); }

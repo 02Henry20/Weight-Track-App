@@ -74,7 +74,7 @@
           <span class="nav-icon">↗</span><span>Trends</span>
         </button>
         <button class="nav-button" data-view="body" type="button">
-          <span class="nav-icon">◫</span><span>Body</span>
+          <span class="nav-icon">⬡</span><span>Body</span>
         </button>
         <button class="nav-button" data-view="goals" type="button">
           <span class="nav-icon">◎</span><span>Goals</span>
@@ -100,6 +100,10 @@
           <h2 id="view-title">Overview</h2>
         </div>
         <div class="topbar-actions">
+          <div id="mobile-sync-pill" class="sync-pill mobile-sync-pill" hidden>
+            <span class="sync-dot"></span>
+            <div><strong id="mobile-sync-label">Connecting</strong><small id="mobile-sync-detail">Checking local cache</small></div>
+          </div>
           <span id="user-chip" class="user-chip"></span>
           <button id="header-add-weight" class="primary-button compact" type="button">＋ Add weight</button>
         </div>
@@ -420,7 +424,7 @@
       <button class="active" data-view="overview" type="button"><span>⌂</span><small>Home</small></button>
       <button data-view="log" type="button"><span>＋</span><small>Log</small></button>
       <button data-view="trends" type="button"><span>↗</span><small>Trends</small></button>
-      <button data-view="body" type="button"><span>◫</span><small>Body</small></button>
+      <button data-view="body" type="button"><span>⬡</span><small>Body</small></button>
       <button data-view="settings" type="button"><span>⚙</span><small>More</small></button>
     </nav>
   </div>

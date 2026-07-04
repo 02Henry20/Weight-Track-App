@@ -254,6 +254,38 @@
     margin-left: auto;
   }
 
+  .mobile-sync-pill {
+    display: inline-flex;
+    max-width: 160px;
+    padding: 7px 8px;
+    border-radius: 13px;
+  }
+
+  .mobile-sync-pill strong {
+    font-size: 0.66rem;
+  }
+
+  .mobile-sync-pill small {
+    max-width: 118px;
+    overflow: hidden;
+    font-size: 0.58rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #trend-window-badge {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    line-height: 1.2;
+    white-space: normal;
+  }
+
+  #trend-window-badge span + span::before {
+    content: "";
+    margin: 0;
+  }
+
   .content-scroll {
     padding: 14px;
   }
