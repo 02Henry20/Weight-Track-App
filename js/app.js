@@ -42,7 +42,6 @@ import {
   round,
   todayString
 } from "./calculations.js";
-import { tutorialData } from "./tutorial-data.js";
 import {
   drawBodyCompositionChart,
   drawMaintenanceChart,
@@ -51,7 +50,7 @@ import {
   redrawOnResize
 } from "./charts.js";
 
-const APP_VERSION = "2.5.0-tutorial";
+const APP_VERSION = "2.4.3";
 
 const VIEW_LABELS = {
   overview: ["TODAY'S SIGNAL", "Overview"],
@@ -95,12 +94,6 @@ let confirmPreviousModal = null;
 let latestAnalyses = null;
 let renderScheduled = false;
 let localSessionOpen = false;
-let tutorialMode = false;
-let tutorialSnapshot = null;
-let tutorialPreviousView = "overview";
-let activeTutorialStepIndex = 0;
-let tutorialTargetElement = null;
-let tutorialRepositionFrame = null;
 
 function setFormMessage(element, text, error = false) {
   element.textContent = text;
@@ -146,10 +139,6 @@ function showToast(title, copy = "", type = "success") {
 }
 
 function queueWrite(promise, title, onlineCopy = "Saved on this device and synchronizing with Firebase.") {
-  if (tutorialMode) {
-    showToast("Tutorial mode is read-only", "Sample data never syncs to Firebase. Close the tutorial to edit real data.", "error");
-    return;
-  }
   showToast(title, navigator.onLine ? onlineCopy : "Saved on this device. Review synchronization when you are online.");
   promise.catch(error => {
     showToast("Save failed", firebaseErrorMessage(error), "error");
@@ -248,10 +237,7 @@ function navigateTo(view) {
     setLogHistoriesCollapsed(true);
   }
   document.querySelector(".content-scroll")?.scrollTo({ top: 0, behavior: "smooth" });
-  window.requestAnimationFrame(() => {
-    renderActiveCharts();
-    if (tutorialMode) scheduleTutorialReposition();
-  });
+  window.requestAnimationFrame(renderActiveCharts);
 }
 
 function setLogHistoriesCollapsed(collapsed) {
@@ -451,11 +437,6 @@ function updateCaloriePreview() {
 
 async function submitWeight(event) {
   event.preventDefault();
-  if (tutorialMode) {
-    showToast("Tutorial mode is read-only", "Close the tutorial before saving real entries.", "error");
-    closeModal();
-    return;
-  }
   const date = document.querySelector("#weight-date").value;
   const weight = Number(document.querySelector("#weight-value").value);
   const message = document.querySelector("#weight-form-message");
@@ -480,11 +461,6 @@ async function submitWeight(event) {
 
 async function submitBody(event) {
   event.preventDefault();
-  if (tutorialMode) {
-    showToast("Tutorial mode is read-only", "Close the tutorial before saving real entries.", "error");
-    closeModal();
-    return;
-  }
   const date = document.querySelector("#body-date").value;
   const bodyFat = Number(document.querySelector("#body-fat-value").value);
   const weight = Number(document.querySelector("#body-weight-value").value);
@@ -510,11 +486,6 @@ async function submitBody(event) {
 
 async function submitCalories(event) {
   event.preventDefault();
-  if (tutorialMode) {
-    showToast("Tutorial mode is read-only", "Close the tutorial before saving real entries.", "error");
-    closeModal();
-    return;
-  }
   const date = document.querySelector("#calorie-date").value;
   const value = Number(document.querySelector("#calorie-value").value);
   const message = document.querySelector("#calorie-form-message");
@@ -540,10 +511,6 @@ async function submitCalories(event) {
 
 function submitGoals(event) {
   event.preventDefault();
-  if (tutorialMode) {
-    showToast("Tutorial mode is read-only", "Close the tutorial before changing real goals.", "error");
-    return;
-  }
   const targetWeight = document.querySelector("#goal-weight-input").value;
   const dailyDeficit = document.querySelector("#goal-deficit-input").value;
   const targetDate = document.querySelector("#goal-date-input").value;
@@ -564,10 +531,6 @@ function submitGoals(event) {
 
 function submitSettings(event) {
   event.preventDefault();
-  if (tutorialMode) {
-    showToast("Tutorial mode is read-only", "Close the tutorial before changing real settings.", "error");
-    return;
-  }
   const settings = {
     theme: document.querySelector("#setting-theme").value,
     colorTheme: document.querySelector("#setting-color-theme").value,
@@ -676,25 +639,6 @@ function formatSigned(value, digits = 1, suffix = "") {
 }
 
 function updateSyncStatus() {
-  if (tutorialMode) {
-    const label = "Tutorial";
-    const detail = "Sample data only · Firebase disabled";
-    elements.syncPill.className = "sync-pill offline";
-    elements.syncLabel.textContent = label;
-    elements.syncDetail.textContent = detail;
-    if (elements.mobileSyncPill) {
-      elements.mobileSyncPill.hidden = false;
-      elements.mobileSyncPill.className = "sync-pill offline mobile-sync-pill";
-      elements.mobileSyncLabel.textContent = label;
-      elements.mobileSyncDetail.textContent = "";
-    }
-    const syncButton = document.querySelector("#sync-now-button");
-    if (syncButton) {
-      syncButton.disabled = true;
-      syncButton.title = "Tutorial data never synchronizes.";
-    }
-    return;
-  }
   const pending = hasPendingWrites();
   const sync = state.sync;
   const firebaseUnavailable = Boolean(state.user?.offlineOnly) || !navigator.onLine || sync.status === "offline";
@@ -1079,426 +1023,6 @@ function bindTouchSafeAction(selector, handler) {
   });
 }
 
-
-const TUTORIAL_STEPS = [
-  {
-    view: "overview",
-    target: ".hero-card",
-    title: "Welcome to the guided CalStat walkthrough",
-    description: "This mode temporarily loads realistic sample data so every chart and panel is populated. Your real measurements stay untouched and Firebase syncing is disabled until you finish or close the tutorial.",
-    placement: "right"
-  },
-  {
-    view: "overview",
-    target: ".topbar",
-    title: "Header and global controls",
-    description: "The header shows the current section, sync state and the quick Add weight action. During the tutorial, the sync badge clearly shows that sample data is device-only.",
-    placement: "bottom"
-  },
-  {
-    view: "overview",
-    target: ".sidebar .main-nav, .mobile-nav",
-    title: "Main navigation",
-    description: "Use the navigation to move between overview, logging, trend analysis, body composition and settings. The tutorial switches views automatically so you can focus on learning the flow.",
-    placement: "right"
-  },
-  {
-    view: "overview",
-    target: ".hero-card",
-    title: "Current weight signal",
-    description: "The main overview card highlights the latest scale weight, the date of the reading and the change since the previous measurement.",
-    placement: "right"
-  },
-  {
-    view: "overview",
-    target: ".hero-grid .metric-card:nth-of-type(4)",
-    title: "Estimated maintenance",
-    description: "CalStat estimates maintenance calories from your logged intake and your measured weight trend. It becomes more useful as calorie coverage and regular weigh-ins improve.",
-    placement: "left"
-  },
-  {
-    view: "overview",
-    target: "#overview-weight-chart",
-    title: "Trend and projection chart",
-    description: "Measured weights, smoothed averages and forecasts are shown together. Use it to separate real direction from day-to-day water and digestion noise.",
-    placement: "top"
-  },
-  {
-    view: "overview",
-    target: ".goal-card",
-    title: "Goal countdown",
-    description: "Set a target weight and CalStat estimates the distance and ETA from the current trend. The forecast updates as new data changes the trend.",
-    placement: "left"
-  },
-  {
-    view: "overview",
-    target: ".quick-actions",
-    title: "Quick entry buttons",
-    description: "From the overview you can quickly log weight, body-fat readings or calories without hunting through the app.",
-    placement: "left"
-  },
-  {
-    view: "log",
-    target: ".entry-type-grid",
-    title: "Log separate data streams",
-    description: "Weight, body composition and calories are separate records. This keeps scale weight, body-fat device readings and nutrition logs independent.",
-    placement: "bottom"
-  },
-  {
-    view: "log",
-    target: "#weight-history",
-    title: "Recent weight history",
-    description: "History cards show recent entries and whether any write is still pending. On mobile, history sections can be folded to keep the page compact.",
-    pre: "expandHistories",
-    placement: "right"
-  },
-  {
-    view: "log",
-    target: "#calorie-history",
-    title: "Daily and weekly calorie entries",
-    description: "You can enter single days or a weekly kcal/day average. Weekly averages fill the seven-day period ending on the selected date.",
-    pre: "expandHistories",
-    placement: "left"
-  },
-  {
-    view: "trends",
-    target: "#trend-weight-chart",
-    title: "Measured, smoothed and predicted",
-    description: "The trends view gives a larger weight chart, diet-phase estimate and projection horizon from your configured model window.",
-    placement: "top"
-  },
-  {
-    view: "trends",
-    target: ".metric-stack",
-    title: "Trend summary numbers",
-    description: "These numbers compress the chart into current smoothed weight, weekly velocity and projected weight at the chosen prediction horizon.",
-    placement: "left"
-  },
-  {
-    view: "trends",
-    target: "#maintenance-analysis-card",
-    title: "Energy balance model",
-    description: "Calories are shown together with rolling maintenance estimates. The confidence badge reflects calorie coverage, weight count, span and trend fit.",
-    placement: "top"
-  },
-  {
-    view: "trends",
-    target: "#analysis-quality-card",
-    title: "Estimate readiness",
-    description: "The quality panel explains whether the model has enough data and how noisy the recent weight trend is.",
-    placement: "left"
-  },
-  {
-    view: "body",
-    target: ".body-metric-grid",
-    title: "Body composition summary",
-    description: "The body page turns body-fat entries into lean mass, fat mass, BMI and normalized FFMI references.",
-    placement: "bottom"
-  },
-  {
-    view: "body",
-    target: "#body-composition-chart",
-    title: "Lean mass, fat mass and body-fat percentage",
-    description: "This chart uses separate axes so kilogram values and body-fat percentages can be inspected together without flattening the smaller series.",
-    placement: "top"
-  },
-  {
-    view: "body",
-    target: "#physique-map-chart",
-    title: "Physique map",
-    description: "The map places the latest body-fat reading against BMI or normalized FFMI so you can compare composition and muscularity over time.",
-    placement: "top"
-  },
-  {
-    view: "goals",
-    target: ".goal-form-card",
-    title: "Goal setup",
-    description: "Target weight, deficit and optional target date drive the forecast. The suggested intake uses the maintenance estimate and your planned deficit.",
-    placement: "right"
-  },
-  {
-    view: "goals",
-    target: ".goal-forecast-card",
-    title: "Forecast card",
-    description: "The forecast summarizes current trend, suggested intake, predicted target date and remaining distance in one place.",
-    placement: "left"
-  },
-  {
-    view: "settings",
-    target: "#settings-form",
-    title: "Settings and model controls",
-    description: "Settings control appearance, smoothing, trend windows, maintenance windows, prediction horizon and chart scaling. Info buttons explain what each model setting means.",
-    placement: "right"
-  },
-  {
-    view: "settings",
-    target: "#optimize-trend-window",
-    title: "Optimization helpers",
-    description: "The helper buttons can pick a low-volatility trend window or a better maintenance window based on the available data.",
-    placement: "left"
-  },
-  {
-    view: "settings",
-    target: ".settings-layout .settings-card:nth-child(2)",
-    title: "Storage and backups",
-    description: "This section shows record counts, sync tools and JSON backup controls. In tutorial mode, sync is blocked so sample data never reaches Firebase.",
-    placement: "left"
-  },
-  {
-    view: "settings",
-    target: "#start-tutorial-button",
-    title: "Replay anytime",
-    description: "The guided tutorial can be started again from Settings whenever you want to review the workflow with populated demo data.",
-    placement: "left"
-  },
-  {
-    view: "overview",
-    target: ".insight-card",
-    title: "You are ready",
-    description: "After you finish, CalStat restores your real device and Firebase state exactly as it was. Log weight regularly, add calorie averages and review trends over multiple weeks.",
-    placement: "top"
-  }
-];
-
-function cloneSerializable(value) {
-  if (typeof structuredClone === "function") return structuredClone(value);
-  return JSON.parse(JSON.stringify(value));
-}
-
-function captureTutorialSnapshot() {
-  return {
-    user: state.user,
-    weights: cloneSerializable(state.weights),
-    bodyEntries: cloneSerializable(state.bodyEntries),
-    calorieEntries: cloneSerializable(state.calorieEntries),
-    settings: cloneSerializable(state.settings),
-    goals: cloneSerializable(state.goals),
-    metadata: cloneSerializable(state.metadata),
-    sync: cloneSerializable(state.sync),
-    activeView,
-    userChip: elements.userChip.textContent,
-    settingsUserEmail: elements.settingsUserEmail.textContent
-  };
-}
-
-function applyTutorialSnapshot(snapshot) {
-  state.user = snapshot.user;
-  state.weights = cloneSerializable(snapshot.weights);
-  state.bodyEntries = cloneSerializable(snapshot.bodyEntries);
-  state.calorieEntries = cloneSerializable(snapshot.calorieEntries);
-  state.settings = cloneSerializable(snapshot.settings);
-  state.goals = cloneSerializable(snapshot.goals);
-  state.metadata = cloneSerializable(snapshot.metadata);
-  state.sync = cloneSerializable(snapshot.sync);
-  elements.userChip.textContent = snapshot.userChip;
-  elements.settingsUserEmail.textContent = snapshot.settingsUserEmail;
-}
-
-function applyTutorialData() {
-  state.user = { uid: "tutorial-calstat", email: "tutorial@calstat.local", offlineOnly: true };
-  state.weights = cloneSerializable(tutorialData.weights);
-  state.bodyEntries = cloneSerializable(tutorialData.bodyEntries);
-  state.calorieEntries = cloneSerializable(tutorialData.calorieEntries);
-  state.settings = cloneSerializable(tutorialData.settings);
-  state.goals = cloneSerializable(tutorialData.goals);
-  state.metadata = {
-    weights: { fromCache: true, pending: false },
-    bodyEntries: { fromCache: true, pending: false },
-    calorieEntries: { fromCache: true, pending: false },
-    settings: { fromCache: true, pending: false },
-    goals: { fromCache: true, pending: false }
-  };
-  state.sync = { status: "offline", detail: "Tutorial sample data · Firebase disabled", lastSyncedAt: null };
-  elements.userChip.textContent = "Tutorial data";
-  elements.settingsUserEmail.textContent = "tutorial@calstat.local";
-}
-
-function tutorialOverlay() {
-  return document.querySelector("#tutorial-overlay");
-}
-
-function startTutorial() {
-  if (tutorialMode) return;
-  tutorialPreviousView = activeView;
-  tutorialSnapshot = captureTutorialSnapshot();
-  tutorialMode = true;
-  activeTutorialStepIndex = 0;
-  closeModal();
-  applyTutorialData();
-  document.body.classList.add("tutorial-active");
-  tutorialOverlay().hidden = false;
-  scheduleRender();
-  showToast("Tutorial started", "Sample data is active. Firebase syncing is disabled until you finish.");
-  runTutorialStep(0);
-}
-
-function finishTutorial({ restoreView = true } = {}) {
-  if (!tutorialMode) return;
-  const snapshot = tutorialSnapshot;
-  tutorialMode = false;
-  tutorialSnapshot = null;
-  tutorialTargetElement = null;
-  document.body.classList.remove("tutorial-active");
-  tutorialOverlay().hidden = true;
-  document.querySelectorAll(".tutorial-target-active").forEach(element => element.classList.remove("tutorial-target-active"));
-  if (snapshot) {
-    applyTutorialSnapshot(snapshot);
-    scheduleRender();
-    navigateTo(restoreView ? snapshot.activeView : tutorialPreviousView);
-  }
-  showToast("Tutorial closed", "Your real data has been restored.");
-}
-
-function runTutorialPreAction(step) {
-  if (step.pre === "expandHistories") setLogHistoriesCollapsed(false);
-}
-
-function getTutorialTarget(selector) {
-  if (!selector) return null;
-  const selectors = selector.split(",").map(item => item.trim()).filter(Boolean);
-  for (const item of selectors) {
-    const target = document.querySelector(item);
-    if (target && target.offsetParent !== null) return target;
-  }
-  return selectors.map(item => document.querySelector(item)).find(Boolean) ?? null;
-}
-
-function waitForPaint() {
-  return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-}
-
-async function runTutorialStep(index) {
-  if (!tutorialMode) return;
-  activeTutorialStepIndex = Math.max(0, Math.min(TUTORIAL_STEPS.length - 1, index));
-  const step = TUTORIAL_STEPS[activeTutorialStepIndex];
-  if (step.view && activeView !== step.view) {
-    navigateTo(step.view);
-    await waitForPaint();
-  }
-  runTutorialPreAction(step);
-  await waitForPaint();
-  const target = getTutorialTarget(step.target) ?? elements.appShell;
-  await scrollTargetForTutorial(target, step.scrollOffset ?? 102);
-  tutorialTargetElement = target;
-  updateTutorialPanel(step);
-  updateTutorialSpotlight();
-}
-
-async function scrollTargetForTutorial(target, offset = 102) {
-  if (!target) return;
-  const rectangle = target.getBoundingClientRect();
-  const maxTop = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-  const desiredTop = Math.max(0, Math.min(maxTop, window.scrollY + rectangle.top - offset));
-  window.scrollTo({ top: desiredTop, behavior: "smooth" });
-  await new Promise(resolve => window.setTimeout(resolve, 260));
-}
-
-function updateTutorialPanel(step) {
-  const overlay = tutorialOverlay();
-  const count = TUTORIAL_STEPS.length;
-  overlay.querySelector("#tutorial-title").textContent = step.title;
-  overlay.querySelector("#tutorial-description").textContent = step.description;
-  overlay.querySelector("#tutorial-step-count").textContent = `${activeTutorialStepIndex + 1} / ${count}`;
-  overlay.querySelector("#tutorial-progress-fill").style.width = `${((activeTutorialStepIndex + 1) / count) * 100}%`;
-  overlay.querySelector("#tutorial-back").disabled = activeTutorialStepIndex === 0;
-  overlay.querySelector("#tutorial-next").textContent = activeTutorialStepIndex === count - 1 ? "Finish" : "Next";
-}
-
-function updateTutorialSpotlight() {
-  if (!tutorialMode || !tutorialTargetElement) return;
-  const overlay = tutorialOverlay();
-  const spotlight = overlay.querySelector("#tutorial-spotlight");
-  const card = overlay.querySelector("#tutorial-card");
-  const targetRectangle = tutorialTargetElement.getBoundingClientRect();
-  const padding = window.innerWidth <= 680 ? 8 : 12;
-  const top = Math.max(8, targetRectangle.top - padding);
-  const left = Math.max(8, targetRectangle.left - padding);
-  const right = Math.min(window.innerWidth - 8, targetRectangle.right + padding);
-  const bottom = Math.min(window.innerHeight - 8, targetRectangle.bottom + padding);
-  const width = Math.max(42, right - left);
-  const height = Math.max(42, bottom - top);
-  const radius = Math.min(26, Math.max(14, Math.min(width, height) * 0.11));
-
-  document.querySelectorAll(".tutorial-target-active").forEach(element => element.classList.remove("tutorial-target-active"));
-  tutorialTargetElement.classList.add("tutorial-target-active");
-
-  Object.assign(spotlight.style, {
-    transform: `translate(${left}px, ${top}px)`,
-    width: `${width}px`,
-    height: `${height}px`,
-    borderRadius: `${radius}px`
-  });
-
-  positionTutorialCard(card, { top, left, right, bottom, width, height }, TUTORIAL_STEPS[activeTutorialStepIndex].placement);
-}
-
-function positionTutorialCard(card, rect, placement = "auto") {
-  const margin = 16;
-  const cardWidth = Math.min(420, window.innerWidth - margin * 2);
-  card.style.width = `${cardWidth}px`;
-  let x = margin;
-  let y = margin;
-
-  const fitsBelow = rect.bottom + margin + 210 < window.innerHeight;
-  const fitsAbove = rect.top - margin - 210 > 0;
-  const fitsRight = rect.right + margin + cardWidth < window.innerWidth;
-  const fitsLeft = rect.left - margin - cardWidth > 0;
-
-  if (window.innerWidth <= 680) {
-    x = margin;
-    y = Math.min(window.innerHeight - 240, Math.max(margin, rect.bottom + margin));
-    if (!fitsBelow && fitsAbove) y = Math.max(margin, rect.top - 236);
-  } else if (placement === "left" && fitsLeft) {
-    x = rect.left - margin - cardWidth;
-    y = rect.top;
-  } else if (placement === "right" && fitsRight) {
-    x = rect.right + margin;
-    y = rect.top;
-  } else if ((placement === "top" || (!fitsBelow && fitsAbove)) && fitsAbove) {
-    x = Math.min(window.innerWidth - cardWidth - margin, Math.max(margin, rect.left));
-    y = rect.top - 214;
-  } else {
-    x = Math.min(window.innerWidth - cardWidth - margin, Math.max(margin, rect.left));
-    y = rect.bottom + margin;
-  }
-
-  const boundedY = Math.min(window.innerHeight - 226, Math.max(margin, y));
-  Object.assign(card.style, { left: `${x}px`, top: `${boundedY}px` });
-}
-
-function scheduleTutorialReposition() {
-  if (!tutorialMode) return;
-  if (tutorialRepositionFrame) cancelAnimationFrame(tutorialRepositionFrame);
-  tutorialRepositionFrame = requestAnimationFrame(() => {
-    tutorialRepositionFrame = null;
-    updateTutorialSpotlight();
-  });
-}
-
-function bindTutorialEvents() {
-  document.querySelector("#start-tutorial-button")?.addEventListener("click", startTutorial);
-  document.querySelector("#tutorial-close")?.addEventListener("click", () => finishTutorial());
-  document.querySelector("#tutorial-back")?.addEventListener("click", () => runTutorialStep(activeTutorialStepIndex - 1));
-  document.querySelector("#tutorial-next")?.addEventListener("click", () => {
-    if (activeTutorialStepIndex >= TUTORIAL_STEPS.length - 1) finishTutorial({ restoreView: false });
-    else runTutorialStep(activeTutorialStepIndex + 1);
-  });
-  document.addEventListener("keydown", event => {
-    if (!tutorialMode) return;
-    if (event.key === "Escape") finishTutorial();
-    if (event.key === "ArrowRight") runTutorialStep(activeTutorialStepIndex + 1);
-    if (event.key === "ArrowLeft") runTutorialStep(activeTutorialStepIndex - 1);
-  });
-  window.addEventListener("resize", scheduleTutorialReposition);
-  window.addEventListener("scroll", scheduleTutorialReposition, true);
-  document.addEventListener("touchmove", event => {
-    if (tutorialMode && !event.target.closest("#tutorial-card")) event.preventDefault();
-  }, { passive: false });
-  document.addEventListener("wheel", event => {
-    if (tutorialMode && !event.target.closest("#tutorial-card")) event.preventDefault();
-  }, { passive: false });
-}
-
 function calculateAnalyses() {
   const weight = analyseWeight(state.weights, state.settings);
   const maintenance = analyseMaintenance(state.weights, state.calorieEntries, state.settings);
@@ -1568,10 +1092,6 @@ function exportBackup() {
 }
 
 async function importBackup(file) {
-  if (tutorialMode) {
-    showToast("Tutorial mode is read-only", "Close the tutorial before importing data.", "error");
-    return;
-  }
   if (!file) return;
   try {
     const backup = JSON.parse(await file.text());
@@ -1712,7 +1232,6 @@ function bindEvents() {
   document.querySelector("#calorie-form").addEventListener("submit", submitCalories);
   document.querySelector("#goals-form").addEventListener("submit", submitGoals);
   document.querySelector("#settings-form").addEventListener("submit", submitSettings);
-  bindTutorialEvents();
 
   document.querySelector("#confirm-cancel").addEventListener("click", () => resolveConfirmation(false));
   document.querySelector("#confirm-accept").addEventListener("click", () => resolveConfirmation(true));
@@ -1734,7 +1253,6 @@ function bindEvents() {
 
   window.addEventListener("online", async () => {
     scheduleRender();
-    if (tutorialMode) return;
     if (!state.user) return;
     if (state.user.offlineOnly) {
       showToast("Online again", "Sign in to sync this device copy with Firebase.");

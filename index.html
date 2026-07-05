@@ -3,23 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0B111A">
+  <meta name="theme-color" content="#07111f">
   <meta name="description" content="Weight, calorie, maintenance, body-composition and goal analytics in one private tracker.">
-  <meta name="application-name" content="CalStat">
-  <meta name="apple-mobile-web-app-title" content="CalStat">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="msapplication-TileColor" content="#0B111A">
-  <meta name="msapplication-config" content="./browserconfig.xml">
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" type="image/svg+xml" href="./icons/favicon.svg">
-  <link rel="icon" type="image/png" sizes="48x48" href="./icons/favicon-48x48.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png">
-  <link rel="shortcut icon" href="./icons/favicon.ico">
-  <link rel="mask-icon" href="./icons/safari-pinned-tab.svg" color="#238DFF">
-  <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple/apple-touch-icon-180x180.png">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <link rel="stylesheet" href="./styles/base.css">
   <link rel="stylesheet" href="./styles/components.css">
   <link rel="stylesheet" href="./styles/layout.css">
@@ -423,7 +411,6 @@
                 <div><span>App version</span><strong id="settings-app-version">—</strong></div>
               </div>
               <button id="sync-now-button" class="primary-button full-width" type="button">Review and synchronize now</button>
-              <button id="start-tutorial-button" class="secondary-button full-width" type="button">Start guided tutorial</button>
               <button id="export-data-button" class="secondary-button full-width" type="button">Export JSON backup</button>
               <label class="secondary-button full-width file-button">Import JSON backup<input id="import-data-input" type="file" accept="application/json" hidden></label>
               <p class="disclaimer">CalStat compares this device with Firebase before resolving differences. A JSON export gives you an additional portable copy.</p>
@@ -441,23 +428,6 @@
       <button data-view="settings" type="button"><span>⚙</span><small>More</small></button>
     </nav>
   </div>
-
-
-  <section id="tutorial-overlay" class="tutorial-overlay" hidden aria-live="polite">
-    <div id="tutorial-spotlight" class="tutorial-spotlight" aria-hidden="true"></div>
-    <article id="tutorial-card" class="tutorial-card" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
-      <button id="tutorial-close" class="tutorial-close" type="button" aria-label="Close tutorial">×</button>
-      <p class="eyebrow">GUIDED TUTORIAL</p>
-      <h3 id="tutorial-title">Welcome</h3>
-      <p id="tutorial-description">This walkthrough uses sample data only.</p>
-      <div class="tutorial-progress-row">
-        <button id="tutorial-back" class="ghost-button compact" type="button">Back</button>
-        <div class="tutorial-progress" aria-hidden="true"><span id="tutorial-progress-fill"></span></div>
-        <button id="tutorial-next" class="primary-button compact" type="button">Next</button>
-      </div>
-      <small id="tutorial-step-count" class="tutorial-step-count">1 / 1</small>
-    </article>
-  </section>
 
   <div id="modal-backdrop" class="modal-backdrop" hidden>
     <section id="weight-modal" class="modal-card" data-modal="weight" hidden aria-modal="true" role="dialog" aria-labelledby="weight-modal-title">
