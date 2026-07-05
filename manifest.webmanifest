@@ -1,30 +1,76 @@
 {
-  "id": "./",
-  "name": "CalStat",
-  "short_name": "CalStat",
-  "description": "Weight, nutrition, body-composition and progress analytics in one private tracker.",
-  "version": "2.4.3",
-  "lang": "en",
-  "start_url": "./",
+  "name": "Ascend",
+  "short_name": "Ascend",
+  "description": "Ranked training progress, activity tracking and muscle-balance analytics.",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "display_override": [
-    "standalone",
-    "minimal-ui"
-  ],
-  "orientation": "any",
-  "background_color": "#0B111A",
+  "orientation": "portrait-primary",
   "theme_color": "#0B111A",
+  "background_color": "#0B111A",
   "categories": [
     "health",
     "fitness",
-    "lifestyle"
+    "productivity"
   ],
-  "prefer_related_applications": false,
   "icons": [
+    {
+      "src": "./icons/android/maskable-icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icons/android/maskable-icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icons/android/maskable-icon-1024x1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icons/android/android-circle-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/android/android-circle-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/android/android-circle-1024x1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-16.png",
+      "sizes": "16x16",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-32.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "./icons/icon-48.png",
       "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-64.png",
+      "sizes": "64x64",
       "type": "image/png",
       "purpose": "any"
     },
@@ -47,14 +93,8 @@
       "purpose": "any"
     },
     {
-      "src": "./icons/icon-144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./icons/icon-152.png",
-      "sizes": "152x152",
+      "src": "./icons/icon-180.png",
+      "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     },
@@ -83,22 +123,10 @@
       "purpose": "any"
     },
     {
-      "src": "./icons/maskable-icon-192.png",
-      "sizes": "192x192",
+      "src": "./icons/icon-1024.png",
+      "sizes": "1024x1024",
       "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "./icons/maskable-icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "./icons/transparent-symbol-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "monochrome"
+      "purpose": "any"
     }
   ]
 }

@@ -1,4 +1,4 @@
-const APP_CACHE = "calstat-app-v8";
+const APP_CACHE = "calstat-app-v9-tutorial";
 const FIREBASE_CACHE = "calstat-firebase-modules-v1";
 const FIREBASE_VERSION = "12.15.0";
 
@@ -16,6 +16,16 @@ const APP_SHELL = [
   "./js/store.js",
   "./js/calculations.js",
   "./js/charts.js",
+  "./js/tutorial-data.js",
+  "./icons/favicon.ico",
+  "./icons/favicon-16x16.png",
+  "./icons/favicon-32x32.png",
+  "./icons/favicon-48x48.png",
+  "./icons/apple/apple-touch-icon-180x180.png",
+  "./icons/android/maskable-icon-192x192.png",
+  "./icons/android/maskable-icon-512x512.png",
+  "./icons/android/android-circle-192x192.png",
+  "./icons/android/android-circle-512x512.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
 ];
