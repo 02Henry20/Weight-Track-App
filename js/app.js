@@ -53,7 +53,7 @@ import {
   redrawOnResize
 } from "./charts.js";
 
-const APP_VERSION = "2.4.10";
+const APP_VERSION = "2.4.11";
 
 const VIEW_LABELS = {
   overview: ["TODAY'S SIGNAL", "Overview"],
@@ -98,6 +98,8 @@ let latestAnalyses = null;
 let renderScheduled = false;
 let localSessionOpen = false;
 let nutripilotWeeklyCandidates = [];
+let weightReminderTimer = null;
+const WEIGHT_REMINDER_LAST_SHOWN_KEY = "calstat-weight-reminder-last-shown-v1";
 
 function setFormMessage(element, text, error = false) {
   element.textContent = text;
@@ -140,6 +142,102 @@ function showToast(title, copy = "", type = "success") {
   toast.append(marker, content);
   elements.toastContainer.append(toast);
   window.setTimeout(() => toast.remove(), 4200);
+}
+
+function isTodayWeightLogged() {
+  const today = todayString();
+  return state.weights.some(entry => entry.date === today);
+}
+
+function normalizeReminderTime(value) {
+  return typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value) ? value : "08:00";
+}
+
+function weightReminderIsEnabled(settings = state.settings) {
+  return settings.weightReminderEnabled === "on" || settings.weightReminderEnabled === true;
+}
+
+function reminderLastShownKey() {
+  return `${WEIGHT_REMINDER_LAST_SHOWN_KEY}:${state.user?.uid ?? "local"}`;
+}
+
+function reminderDateForToday(timeString) {
+  const [hours, minutes] = normalizeReminderTime(timeString).split(":").map(Number);
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  return date;
+}
+
+async function ensureWeightReminderPermission() {
+  if (!("Notification" in window)) return "unsupported";
+  if (Notification.permission !== "default") return Notification.permission;
+  try {
+    return await Notification.requestPermission();
+  } catch {
+    return "denied";
+  }
+}
+
+async function showWeightReminderNotification() {
+  if (!weightReminderIsEnabled() || isTodayWeightLogged()) return;
+  const today = todayString();
+  try {
+    if (localStorage.getItem(reminderLastShownKey()) === today) return;
+    localStorage.setItem(reminderLastShownKey(), today);
+  } catch {
+    // Non-critical: reminders can still show without localStorage bookkeeping.
+  }
+
+  showToast("Log today's weight", "A daily weight entry is still missing.");
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+  const options = {
+    body: "Open CalStat and log today's weight.",
+    tag: "calstat-weight-reminder",
+    renotify: false,
+    icon: "./icons/icon-192.png",
+    badge: "./icons/icon-192.png",
+    data: { url: "./" }
+  };
+
+  try {
+    if ("serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification("Log today's weight", options);
+    } else {
+      new Notification("Log today's weight", options);
+    }
+  } catch {
+    // Browser notification support varies by platform. The in-app toast above is the fallback.
+  }
+}
+
+function scheduleWeightReminder(settings = state.settings) {
+  if (weightReminderTimer) {
+    window.clearTimeout(weightReminderTimer);
+    weightReminderTimer = null;
+  }
+  if (!weightReminderIsEnabled(settings)) return;
+
+  const timeString = normalizeReminderTime(settings.weightReminderTime);
+  const now = new Date();
+  const todayReminder = reminderDateForToday(timeString);
+  let nextReminder = new Date(todayReminder);
+
+  if (now >= todayReminder) {
+    const lastShown = (() => {
+      try { return localStorage.getItem(reminderLastShownKey()); } catch { return null; }
+    })();
+    if (!isTodayWeightLogged() && lastShown !== todayString()) {
+      void showWeightReminderNotification();
+    }
+    nextReminder.setDate(nextReminder.getDate() + 1);
+  }
+
+  const delay = Math.max(1_000, nextReminder.getTime() - Date.now());
+  weightReminderTimer = window.setTimeout(() => {
+    void showWeightReminderNotification().finally(() => scheduleWeightReminder(state.settings));
+  }, delay);
 }
 
 function queueWrite(promise, title, onlineCopy = "Saved on this device and synchronizing with Firebase.") {
@@ -278,6 +376,7 @@ function closeModal() {
   if (confirmResolver || syncChoiceResolver) return;
   activeModalType = null;
   elements.modalBackdrop.hidden = true;
+  elements.modalBackdrop.classList.remove("modal-top");
   document.querySelectorAll("[data-modal]").forEach(modal => {
     modal.hidden = true;
   });
@@ -358,6 +457,7 @@ function resolveConfirmation(value) {
       modal.hidden = true;
     });
     elements.modalBackdrop.hidden = true;
+    elements.modalBackdrop.classList.remove("modal-top");
     document.body.style.overflow = "";
   }
 
@@ -369,6 +469,7 @@ function askSyncChoice(summary) {
     syncChoiceResolver = resolve;
     activeModalType = "sync-conflict";
     elements.modalBackdrop.hidden = false;
+    elements.modalBackdrop.classList.add("modal-top");
     document.querySelectorAll("[data-modal]").forEach(modal => {
       modal.hidden = modal.dataset.modal !== "sync-conflict";
     });
@@ -390,6 +491,7 @@ function resolveSyncChoice(choice) {
     modal.hidden = true;
   });
   elements.modalBackdrop.hidden = true;
+  elements.modalBackdrop.classList.remove("modal-top");
   document.body.style.overflow = "";
   resolver(choice);
 }
@@ -588,6 +690,7 @@ async function submitWeight(event) {
   }
 
   queueWrite(saveWeight({ date, weight }), "Weight saved");
+  scheduleWeightReminder(state.settings);
   closeModal();
 }
 
@@ -679,7 +782,9 @@ function submitSettings(event) {
     chartWeightMin: document.querySelector("#setting-chart-weight-min").value,
     chartWeightMax: document.querySelector("#setting-chart-weight-max").value,
     energyDensityKcalPerKg: document.querySelector("#setting-energy-density").value,
-    trendConfidenceView: document.querySelector("#setting-trend-confidence").value
+    trendConfidenceView: document.querySelector("#setting-trend-confidence").value,
+    weightReminderEnabled: document.querySelector("#setting-weight-reminder-enabled").value,
+    weightReminderTime: normalizeReminderTime(document.querySelector("#setting-weight-reminder-time").value)
   };
   const message = document.querySelector("#settings-message");
 
@@ -710,7 +815,13 @@ function submitSettings(event) {
     setFormMessage(message, "Fixed weight chart range needs a valid minimum below maximum.", true);
     return;
   }
+  if (settings.weightReminderEnabled === "on" && !/^([01]\d|2[0-3]):[0-5]\d$/.test(settings.weightReminderTime)) {
+    setFormMessage(message, "Reminder time must be a valid 24-hour time.", true);
+    return;
+  }
 
+  if (settings.weightReminderEnabled === "on") void ensureWeightReminderPermission();
+  scheduleWeightReminder(settings);
   queueWrite(saveSettings(settings), "Settings saved");
   setFormMessage(message, navigator.onLine ? "Settings saved and synchronizing with Firebase." : "Settings saved on this device.");
 }
@@ -862,6 +973,9 @@ function renderOverview(analyses) {
     deltaElement.textContent = "Add your first measurement";
     deltaElement.className = "metric-delta neutral";
   }
+
+  const overviewAddWeightButton = document.querySelector("#overview-add-weight");
+  if (overviewAddWeightButton) overviewAddWeightButton.hidden = isTodayWeightLogged();
 
   const goalDifference = goals.difference;
   const goalDaysValue = document.querySelector("#goal-days-value");
@@ -1041,6 +1155,12 @@ function renderGoals(analyses) {
   setText("#goal-suggested-intake", goals.suggestedIntake == null ? "—" : `${Math.round(goals.suggestedIntake).toLocaleString()} kcal/day`);
   setText("#goal-predicted-date", goals.etaDate ? formatLongDate(goals.etaDate) : "Trend not aligned");
   setText("#goal-difference", goals.difference == null ? "—" : `${formatSigned(goals.difference, 1)} kg`);
+  const compositionTargetTag = document.querySelector("#goal-composition-target-tag");
+  const targetWeightValue = Number(state.goals.targetWeight);
+  if (compositionTargetTag) {
+    compositionTargetTag.hidden = !Number.isFinite(targetWeightValue);
+    compositionTargetTag.textContent = Number.isFinite(targetWeightValue) ? `Target ${targetWeightValue.toFixed(1)} kg` : "";
+  }
 
   const form = document.querySelector("#goals-form");
   if (!form.contains(document.activeElement)) {
@@ -1074,6 +1194,9 @@ function renderSettings() {
     document.querySelector("#setting-chart-weight-max").value = state.settings.chartWeightMax ?? "";
     document.querySelector("#setting-energy-density").value = String(state.settings.energyDensityKcalPerKg);
     document.querySelector("#setting-trend-confidence").value = state.settings.trendConfidenceView === "off" ? "off" : "on";
+    document.querySelector("#setting-weight-reminder-enabled").value = weightReminderIsEnabled(state.settings) ? "on" : "off";
+    document.querySelector("#setting-weight-reminder-time").value = normalizeReminderTime(state.settings.weightReminderTime);
+    document.querySelector("#setting-weight-reminder-time").disabled = !weightReminderIsEnabled(state.settings);
   }
   document.querySelector("#chart-fixed-range-fields")?.classList.toggle("hidden", state.settings.chartScaleMode !== "fixed");
 
@@ -1214,6 +1337,7 @@ function scheduleRender() {
     renderGoals(latestAnalyses);
     renderSettings();
     renderActiveCharts();
+    scheduleWeightReminder(state.settings);
   });
 }
 
@@ -1361,6 +1485,9 @@ function bindEvents() {
   });
   document.querySelector("#setting-chart-scale-mode").addEventListener("change", event => {
     document.querySelector("#chart-fixed-range-fields")?.classList.toggle("hidden", event.target.value !== "fixed");
+  });
+  document.querySelector("#setting-weight-reminder-enabled")?.addEventListener("change", event => {
+    document.querySelector("#setting-weight-reminder-time").disabled = event.target.value !== "on";
   });
   bindTouchSafeAction("#optimize-maintenance-window", useBestMaintenanceWindow);
   bindTouchSafeAction("#optimize-trend-window", useLowestVolatilityTrendWindow);

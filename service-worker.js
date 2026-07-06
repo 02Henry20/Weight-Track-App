@@ -1,4 +1,4 @@
-const APP_CACHE = "calstat-app-v15";
+const APP_CACHE = "calstat-app-v16";
 const FIREBASE_CACHE = "calstat-firebase-modules-v1";
 const FIREBASE_VERSION = "12.15.0";
 
@@ -102,6 +102,20 @@ self.addEventListener("fetch", event => {
       });
 
       return cached ?? networkRequest;
+    })
+  );
+});
+
+
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then(clientList => {
+      for (const client of clientList) {
+        if ("focus" in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow("./");
+      return null;
     })
   );
 });

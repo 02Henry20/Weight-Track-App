@@ -700,39 +700,6 @@ export function drawGoalCompositionProjectionChart(canvas, bodyAnalysis, goals =
     context.moveTo(x, area.top);
     context.lineTo(x, area.bottom);
     context.stroke();
-    context.font = "11px system-ui, sans-serif";
-    const targetLabel = `Target ${round(targetWeight, 1)} kg`;
-    const targetLabelWidth = context.measureText(targetLabel).width + 14;
-    const targetLabelHeight = 20;
-    const preferRight = x < area.left + (area.right - area.left) * 0.56;
-    const canPlaceRight = x + 10 + targetLabelWidth <= area.right - 2;
-    const canPlaceLeft = x - 10 - targetLabelWidth >= area.left + 2;
-    const placeRight = (preferRight && canPlaceRight) || !canPlaceLeft;
-    const targetLabelCenterY = clamp(
-      targetY - targetLabelHeight - 8 >= area.top ? targetY - 18 : targetY + 18,
-      area.top + targetLabelHeight / 2 + 2,
-      area.bottom - targetLabelHeight / 2 - 2
-    );
-    const targetLabelRectX = placeRight
-      ? Math.min(area.right - targetLabelWidth, x + 10)
-      : Math.max(area.left, x - 10 - targetLabelWidth);
-    const targetLabelRectY = targetLabelCenterY - targetLabelHeight / 2;
-    context.setLineDash([]);
-    context.fillStyle = "rgba(53, 208, 127, 0.13)";
-    context.strokeStyle = "rgba(53, 208, 127, 0.42)";
-    context.lineWidth = 1;
-    context.beginPath();
-    context.roundRect(targetLabelRectX, targetLabelRectY, targetLabelWidth, targetLabelHeight, 8);
-    context.fill();
-    context.stroke();
-    context.fillStyle = COLORS.green;
-    context.textAlign = placeRight ? "left" : "right";
-    context.textBaseline = "middle";
-    context.fillText(
-      targetLabel,
-      placeRight ? targetLabelRectX + 7 : targetLabelRectX + targetLabelWidth - 7,
-      targetLabelCenterY
-    );
     context.restore();
 
     hitPoints.push({

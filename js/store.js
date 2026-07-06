@@ -32,7 +32,9 @@ export const DEFAULT_SETTINGS = Object.freeze({
   chartWeightMin: "",
   chartWeightMax: "",
   energyDensityKcalPerKg: 7700,
-  trendConfidenceView: "on"
+  trendConfidenceView: "on",
+  weightReminderEnabled: "off",
+  weightReminderTime: "08:00"
 });
 
 export const DEFAULT_GOALS = Object.freeze({
@@ -276,7 +278,11 @@ function migrateSettings(storedSettings = {}) {
     energyDensityKcalPerKg: Number.isFinite(Number(storedSettings.energyDensityKcalPerKg))
       ? Number(storedSettings.energyDensityKcalPerKg)
       : DEFAULT_SETTINGS.energyDensityKcalPerKg,
-    trendConfidenceView: storedSettings.trendConfidenceView === "off" ? "off" : "on"
+    trendConfidenceView: storedSettings.trendConfidenceView === "off" ? "off" : "on",
+    weightReminderEnabled: storedSettings.weightReminderEnabled === "on" || storedSettings.weightReminderEnabled === true ? "on" : "off",
+    weightReminderTime: typeof storedSettings.weightReminderTime === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(storedSettings.weightReminderTime)
+      ? storedSettings.weightReminderTime
+      : DEFAULT_SETTINGS.weightReminderTime
   };
 }
 
@@ -715,6 +721,8 @@ function settingsToCloudData(settings, updatedAtMs) {
     chartWeightMax: settings.chartWeightMax === "" ? "" : Number(settings.chartWeightMax),
     energyDensityKcalPerKg: Number(settings.energyDensityKcalPerKg),
     trendConfidenceView: settings.trendConfidenceView === "off" ? "off" : "on",
+    weightReminderEnabled: settings.weightReminderEnabled === "on" ? "on" : "off",
+    weightReminderTime: typeof settings.weightReminderTime === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(settings.weightReminderTime) ? settings.weightReminderTime : "08:00",
     clientUpdatedAtMs: updatedAtMs,
     updatedAt: serverTimestamp()
   };

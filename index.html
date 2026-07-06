@@ -162,19 +162,19 @@
 
             <article class="goal-card glass-panel reveal-card">
               <div class="panel-heading compact-heading">
-                <div><p class="eyebrow">TARGET</p><h3>Body-fat goal</h3></div>
+                <div><p class="eyebrow">TARGET</p><h3>Weight goal</h3></div>
                 <button class="icon-button" data-go-view="goals" type="button" aria-label="Open goals">→</button>
               </div>
-              <div class="goal-countdown" aria-label="Distance to target body fat">
+              <div class="goal-countdown" aria-label="Distance to target weight">
                 <span class="goal-countdown-icon" aria-hidden="true">◎</span>
                 <div class="goal-countdown-copy">
                   <strong id="goal-days-value">—</strong>
                   <span id="goal-days-label">Set a target weight</span>
-                  <small id="goal-countdown-meta">The estimate will use your body-fat trend.</small>
+                  <small id="goal-countdown-meta">The estimate will use your current weight trend.</small>
                 </div>
               </div>
               <div class="goal-details">
-                <div><span>Target BF</span><strong id="goal-target-weight">—</strong></div>
+                <div><span>Target Weight</span><strong id="goal-target-weight">—</strong></div>
                 <div><span>Projected ETA</span><strong id="goal-eta">—</strong></div>
               </div>
             </article>
@@ -325,6 +325,7 @@
             </article>
 
             <article class="chart-card glass-panel goal-composition-card">
+              <span id="goal-composition-target-tag" class="goal-composition-target-tag" hidden>Target — kg</span>
               <div class="panel-heading">
                 <div><p class="eyebrow">COMPOSITION ESTIMATE</p><h3>Weight vs body fat</h3><p class="plot-note">Uses your recent body-composition baseline and a conservative fat/lean change model.</p></div>
               </div>
@@ -374,6 +375,18 @@
                   <div class="field-label-row"><label for="setting-prediction-days">Prediction horizon (days)</label><details class="setting-help"><summary aria-label="Explain prediction horizon">i</summary><p>Sets how far the weight trend is projected into the future. Longer forecasts are less certain.</p></details></div>
                   <input id="setting-prediction-days" type="number" min="7" max="3650" step="1" inputmode="numeric">
                 </div>
+
+                <div class="settings-divider"></div>
+                <p class="settings-group-title">Reminders</p>
+
+                <div class="settings-inline-grid reminder-settings-grid">
+                  <div class="field setting-field">
+                    <div class="field-label-row"><label for="setting-weight-reminder-enabled">Daily weight reminder</label><details class="setting-help"><summary aria-label="Explain daily weight reminder">i</summary><p>Shows a browser notification when the selected time arrives and today does not have a weight entry yet. Browser permission is required.</p></details></div>
+                    <select id="setting-weight-reminder-enabled"><option value="off">Off</option><option value="on">On</option></select>
+                  </div>
+                  <label class="field setting-field"><span>Reminder time</span><input id="setting-weight-reminder-time" type="time" step="300" value="08:00"></label>
+                </div>
+
                 <div class="field setting-field">
                   <div class="field-label-row"><label for="setting-chart-start-date">Chart history starts on</label><details class="setting-help"><summary aria-label="Explain chart history">i</summary><p>Only measurements on or after this date appear in weight charts. Leave it empty to show all history.</p></details></div>
                   <input id="setting-chart-start-date" type="date">
