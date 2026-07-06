@@ -18,8 +18,10 @@ import {
   hasPendingWrites,
   importState,
   isUsingCacheOnly,
+  fetchNutriPilotWeeklyCalories,
   saveBodyComposition,
   saveCalories,
+  saveWeeklyCalorieEntries,
   saveGoals,
   saveSettings,
   saveWeight,
@@ -44,13 +46,14 @@ import {
 } from "./calculations.js";
 import {
   drawBodyCompositionChart,
+  drawGoalCompositionProjectionChart,
   drawMaintenanceChart,
   drawPhysiqueMap,
   drawWeightChart,
   redrawOnResize
 } from "./charts.js";
 
-const APP_VERSION = "2.4.4";
+const APP_VERSION = "2.4.7";
 
 const VIEW_LABELS = {
   overview: ["TODAY'S SIGNAL", "Overview"],
@@ -94,6 +97,7 @@ let confirmPreviousModal = null;
 let latestAnalyses = null;
 let renderScheduled = false;
 let localSessionOpen = false;
+let nutripilotWeeklyCandidates = [];
 
 function setFormMessage(element, text, error = false) {
   element.textContent = text;
@@ -435,6 +439,134 @@ function updateCaloriePreview() {
     : "— kcal/day";
 }
 
+function formatWeekRange(startDate, endDate) {
+  return `${formatLongDate(startDate)} – ${formatLongDate(endDate)}`;
+}
+
+function selectedNutriPilotWeeks() {
+  return [...document.querySelectorAll("[data-nutripilot-week]:checked")]
+    .map(input => nutripilotWeeklyCandidates.find(week => week.id === input.value))
+    .filter(Boolean);
+}
+
+function updateNutriPilotSelectionSummary() {
+  const total = nutripilotWeeklyCandidates.length;
+  const selected = selectedNutriPilotWeeks().length;
+  const selectAll = document.querySelector("#nutripilot-select-all");
+  const importButton = document.querySelector("#nutripilot-import-confirm");
+
+  setText("#nutripilot-selection-summary", total ? `${selected}/${total} week${total === 1 ? "" : "s"} selected` : "No importable weeks");
+  if (importButton) importButton.disabled = selected === 0;
+  if (selectAll) {
+    selectAll.checked = total > 0 && selected === total;
+    selectAll.indeterminate = selected > 0 && selected < total;
+    selectAll.disabled = total === 0;
+  }
+}
+
+function renderNutriPilotWeeks() {
+  const list = document.querySelector("#nutripilot-week-list");
+  const importButton = document.querySelector("#nutripilot-import-confirm");
+  if (!list || !importButton) return;
+
+  list.replaceChildren();
+  if (!nutripilotWeeklyCandidates.length) {
+    const empty = document.createElement("div");
+    empty.className = "nutripilot-empty";
+    empty.textContent = "No new complete past NutriPilot weeks were found. Weeks with any existing CalStat calorie entry are hidden.";
+    list.append(empty);
+    importButton.disabled = true;
+    setText("#nutripilot-sync-status", "Nothing new to import.");
+    updateNutriPilotSelectionSummary();
+    return;
+  }
+
+  setText("#nutripilot-sync-status", `Found ${nutripilotWeeklyCandidates.length} new past week${nutripilotWeeklyCandidates.length === 1 ? "" : "s"}.`);
+
+  for (const week of nutripilotWeeklyCandidates) {
+    const row = document.createElement("label");
+    row.className = "nutripilot-week-row";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = week.id;
+    checkbox.checked = true;
+    checkbox.dataset.nutripilotWeek = week.id;
+    checkbox.addEventListener("change", updateNutriPilotSelectionSummary);
+
+    const copy = document.createElement("div");
+    copy.className = "nutripilot-week-copy";
+
+    const title = document.createElement("strong");
+    title.textContent = formatWeekRange(week.start, week.end);
+
+    const meta = document.createElement("small");
+    meta.textContent = `${week.activeDayCount}/${week.calendarDayCount} logged days · ${Math.round(week.totalKcal).toLocaleString()} kcal total`;
+
+    copy.append(title, meta);
+
+    const value = document.createElement("span");
+    value.className = "nutripilot-week-value";
+    value.textContent = `${Math.round(week.averageKcal).toLocaleString()} kcal/day`;
+
+    row.append(checkbox, copy, value);
+    list.append(row);
+  }
+
+  updateNutriPilotSelectionSummary();
+}
+
+async function openNutriPilotSync() {
+  const button = document.querySelector("#sync-nutripilot-button");
+  const message = document.querySelector("#calorie-form-message");
+  if (button) button.disabled = true;
+  setFormMessage(message, "Reading NutriPilot weekly report caches…");
+
+  try {
+    nutripilotWeeklyCandidates = await fetchNutriPilotWeeklyCalories();
+    renderNutriPilotWeeks();
+    openModal("nutripilot-sync");
+    setFormMessage(message, "");
+  } catch (error) {
+    const copy = firebaseErrorMessage(error);
+    setFormMessage(message, copy, true);
+    showToast("NutriPilot sync failed", copy, "error");
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+function toggleAllNutriPilotWeeks(checked) {
+  document.querySelectorAll("[data-nutripilot-week]").forEach(input => {
+    input.checked = checked;
+  });
+  updateNutriPilotSelectionSummary();
+}
+
+function importSelectedNutriPilotWeeks() {
+  const selected = selectedNutriPilotWeeks().filter(week => {
+    return !state.calorieEntries.some(entry => entry.date >= week.start && entry.date <= week.end);
+  });
+
+  if (!selected.length) {
+    setText("#nutripilot-sync-status", "No selected weeks are still importable.");
+    updateNutriPilotSelectionSummary();
+    return;
+  }
+
+  const entries = selected.map(week => ({
+    date: week.end,
+    value: Math.round(week.averageKcal)
+  }));
+  const promise = saveWeeklyCalorieEntries(entries);
+  queueWrite(
+    promise,
+    "NutriPilot weeks imported",
+    `${selected.length} weekly average${selected.length === 1 ? "" : "s"} added as CalStat calorie entries.`
+  );
+  closeModal();
+}
+
 async function submitWeight(event) {
   event.preventDefault();
   const date = document.querySelector("#weight-date").value;
@@ -511,13 +643,13 @@ async function submitCalories(event) {
 
 function submitGoals(event) {
   event.preventDefault();
-  const targetBodyFat = document.querySelector("#goal-body-fat-input").value;
+  const targetWeight = document.querySelector("#goal-weight-input").value;
   const dailyDeficit = document.querySelector("#goal-deficit-input").value;
   const targetDate = document.querySelector("#goal-date-input").value;
   const message = document.querySelector("#goals-message");
 
-  if (targetBodyFat && (Number(targetBodyFat) < 2 || Number(targetBodyFat) > 70)) {
-    setFormMessage(message, "Target body fat must be between 2% and 70%.", true);
+  if (targetWeight && (Number(targetWeight) < 20 || Number(targetWeight) > 500)) {
+    setFormMessage(message, "Target weight must be between 20 and 500 kg.", true);
     return;
   }
   if (Number(dailyDeficit) < 0 || Number(dailyDeficit) > 1500) {
@@ -525,7 +657,7 @@ function submitGoals(event) {
     return;
   }
 
-  queueWrite(saveGoals({ targetBodyFat, dailyDeficit, targetDate }), "Goals saved");
+  queueWrite(saveGoals({ targetWeight, targetBodyFat: null, dailyDeficit, targetDate }), "Goals saved");
   setFormMessage(message, navigator.onLine ? "Goals saved and synchronizing with Firebase." : "Goals saved on this device.");
 }
 
@@ -737,26 +869,26 @@ function renderOverview(analyses) {
   const goalCountdownMeta = document.querySelector("#goal-countdown-meta");
   if (goalDifference == null) {
     goalDaysValue.textContent = "—";
-    goalDaysLabel.textContent = goals.targetBodyFat == null ? "Set a body-fat target" : "Add body-composition data";
-    goalCountdownMeta.textContent = goals.targetBodyFat == null
-      ? "The estimate uses your body-fat trend."
-      : "Add at least two body-composition entries to estimate progress.";
-  } else if (Math.abs(goalDifference) <= 0.1) {
+    goalDaysLabel.textContent = goals.targetWeight == null ? "Set a target weight" : "Add weight data";
+    goalCountdownMeta.textContent = goals.targetWeight == null
+      ? "The estimate will use your current weight trend."
+      : "Add at least two weight measurements to estimate progress.";
+  } else if (Math.abs(goalDifference) <= 0.05) {
     goalDaysValue.textContent = "Reached";
-    goalDaysLabel.textContent = "Body-fat target achieved";
-    goalCountdownMeta.textContent = "You are at the configured target body-fat percentage.";
+    goalDaysLabel.textContent = "Target achieved";
+    goalCountdownMeta.textContent = "You are at the configured target weight.";
   } else if (goals.etaDays != null && goals.etaDate) {
-    goalDaysValue.textContent = `${Math.abs(goalDifference).toFixed(1)} pp`;
-    goalDaysLabel.textContent = goalDifference > 0 ? "to gain until BF target" : "to lose until BF target";
+    goalDaysValue.textContent = `${Math.abs(goalDifference).toFixed(1)} kg`;
+    goalDaysLabel.textContent = goalDifference > 0 ? "to gain until target" : "to lose until target";
     const daysLeft = Math.max(1, Math.ceil(goals.etaDays));
     goalCountdownMeta.textContent = `${daysLeft.toLocaleString()} day${daysLeft === 1 ? "" : "s"} · ETA ${formatLongDate(goals.etaDate)}`;
   } else {
-    goalDaysValue.textContent = `${Math.abs(goalDifference).toFixed(1)} pp`;
-    goalDaysLabel.textContent = goalDifference > 0 ? "to gain · BF trend not aligned" : "to lose · BF trend not aligned";
-    goalCountdownMeta.textContent = "Log more aligned composition entries to estimate the date.";
+    goalDaysValue.textContent = `${Math.abs(goalDifference).toFixed(1)} kg`;
+    goalDaysLabel.textContent = goalDifference > 0 ? "to gain · trend not aligned" : "to lose · trend not aligned";
+    goalCountdownMeta.textContent = "Log more aligned measurements to estimate the date.";
   }
-  setText("#goal-target-weight", goals.targetBodyFat == null ? "—" : `${goals.targetBodyFat.toFixed(1)}%`);
-  setText("#goal-eta", goals.etaDate ? formatLongDate(goals.etaDate) : "Not enough BF trend");
+  setText("#goal-target-weight", goals.targetWeight == null ? "—" : `${goals.targetWeight.toFixed(1)} kg`);
+  setText("#goal-eta", goals.etaDate ? formatLongDate(goals.etaDate) : "Not enough trend");
 
   setText("#insight-title", insight.title);
   setText("#insight-text", insight.text);
@@ -801,7 +933,7 @@ function renderTrends(analyses) {
   const predictionDays = Number(state.settings.predictionDays) || Math.round((Number(state.settings.predictionMonths) || 3) * 30.4375);
   const trendWindowBadge = document.querySelector("#trend-window-badge");
   if (trendWindowBadge) {
-    trendWindowBadge.innerHTML = `<span>${state.settings.trendWindowDays}-day model</span><span>${predictionDays}-day view</span>`;
+    trendWindowBadge.innerHTML = `<span>${state.settings.trendWindowDays}-day model</span><span>${predictionDays}-day forecast</span>`;
   }
   setText("#trend-current", weight.current == null ? "—" : `${weight.current.toFixed(1)} kg`);
   setText("#trend-rate", weight.weeklyRate == null ? "—" : `${formatSigned(weight.weeklyRate, 2)} kg/week`);
@@ -903,16 +1035,16 @@ function renderBody(analyses) {
 
 function renderGoals(analyses) {
   const goals = analyses.goals;
-  setText("#goal-forecast-title", goals.targetBodyFat == null ? "Set a body-fat target to begin" : `Trajectory toward ${goals.targetBodyFat.toFixed(1)}% body fat`);
+  setText("#goal-forecast-title", goals.targetWeight == null ? "Set a target weight to begin" : `Trajectory toward ${goals.targetWeight.toFixed(1)} kg`);
   setText("#goal-days-remaining", goals.etaDays == null ? "—" : Math.round(goals.etaDays).toLocaleString());
-  setText("#goal-current-trend", goals.weeklyRate == null ? "—" : `${formatSigned(goals.weeklyRate, 2)} pp/week`);
+  setText("#goal-current-trend", goals.weeklyRate == null ? "—" : `${formatSigned(goals.weeklyRate, 2)} kg/week`);
   setText("#goal-suggested-intake", goals.suggestedIntake == null ? "—" : `${Math.round(goals.suggestedIntake).toLocaleString()} kcal/day`);
-  setText("#goal-predicted-date", goals.etaDate ? formatLongDate(goals.etaDate) : "BF trend not aligned");
-  setText("#goal-difference", goals.difference == null ? "—" : `${formatSigned(goals.difference, 1)} pp`);
+  setText("#goal-predicted-date", goals.etaDate ? formatLongDate(goals.etaDate) : "Trend not aligned");
+  setText("#goal-difference", goals.difference == null ? "—" : `${formatSigned(goals.difference, 1)} kg`);
 
   const form = document.querySelector("#goals-form");
   if (!form.contains(document.activeElement)) {
-    document.querySelector("#goal-body-fat-input").value = state.goals.targetBodyFat ?? "";
+    document.querySelector("#goal-weight-input").value = state.goals.targetWeight ?? "";
     document.querySelector("#goal-deficit-input").value = state.goals.dailyDeficit ?? 300;
     document.querySelector("#goal-date-input").value = state.goals.targetDate ?? "";
   }
@@ -1042,12 +1174,14 @@ function renderActiveCharts() {
   if (activeView === "overview") {
     drawWeightChart(document.querySelector("#overview-weight-chart"), weight, {
       compact: true,
+      targetWeight: state.goals.targetWeight,
       settings: state.settings
     });
   }
 
   if (activeView === "trends") {
     drawWeightChart(document.querySelector("#trend-weight-chart"), weight, {
+      targetWeight: state.goals.targetWeight,
       settings: state.settings
     });
     drawMaintenanceChart(document.querySelector("#maintenance-chart"), maintenance, {
@@ -1056,8 +1190,12 @@ function renderActiveCharts() {
   }
 
   if (activeView === "body") {
-    drawBodyCompositionChart(document.querySelector("#body-composition-chart"), body, { targetBodyFat: state.goals.targetBodyFat });
+    drawBodyCompositionChart(document.querySelector("#body-composition-chart"), body);
     drawPhysiqueMap(document.querySelector("#physique-map-chart"), body, state.settings);
+  }
+
+  if (activeView === "goals") {
+    drawGoalCompositionProjectionChart(document.querySelector("#goal-composition-chart"), body, state.goals);
   }
 }
 
@@ -1191,6 +1329,9 @@ function bindEvents() {
     });
   });
   document.querySelector("#calorie-value").addEventListener("input", updateCaloriePreview);
+  document.querySelector("#sync-nutripilot-button")?.addEventListener("click", openNutriPilotSync);
+  document.querySelector("#nutripilot-select-all")?.addEventListener("change", event => toggleAllNutriPilotWeeks(event.target.checked));
+  document.querySelector("#nutripilot-import-confirm")?.addEventListener("click", importSelectedNutriPilotWeeks);
   document.querySelector("#setting-theme").addEventListener("change", () => {
     applyAppearance({
       ...state.settings,

@@ -230,7 +230,8 @@ function nearestTooltipPoint(canvas, event, maxDistance = 42) {
 function showTooltipForPoint(canvas, event, point) {
   const tooltip = tooltipElement();
   const value = Number(point.point.value);
-  tooltip.innerHTML = `<strong style="color:${point.color}">${point.series}</strong><span>${formatShortDate(point.point.date)} · ${canvas.__valueFormatter(value, point)}</span>`;
+  const label = point.point.label ?? formatShortDate(point.point.date);
+  tooltip.innerHTML = `<strong style="color:${point.color}">${point.series}</strong><span>${label} · ${canvas.__valueFormatter(value, point)}</span>`;
   tooltip.style.left = `${event.clientX}px`;
   tooltip.style.top = `${event.clientY}px`;
   tooltip.hidden = false;
@@ -454,21 +455,17 @@ export function drawBodyCompositionChart(canvas, bodyAnalysis, { targetBodyFat =
   setChartAvailability(canvas, available);
   if (!available) return;
 
-  const forecasts = bodyAnalysis.forecast ?? {};
-  const leanForecast = forecasts.leanMass ?? [];
-  const fatMassForecast = forecasts.fatMass ?? [];
-  const bodyFatForecast = forecasts.bodyFat ?? [];
 
   const { context, width, height } = prepareCanvas(canvas);
   const compact = width <= 560;
   const area = chartArea(width, height, { left: 58, right: compact ? 88 : 116, bottom: 38 });
-  const [minTime, maxTime] = dateExtent([entries, leanForecast, fatMassForecast, bodyFatForecast]);
-  const leanValues = [...entries.map(point => point.leanMass), ...leanForecast.map(point => point.value)];
-  const fatMassValues = [...entries.map(point => point.fatMass), ...fatMassForecast.map(point => point.value)];
+  const [minTime, maxTime] = dateExtent([entries]);
+  const leanValues = entries.map(point => point.leanMass);
+  const fatMassValues = entries.map(point => point.fatMass);
+  const targetBodyFatValue = targetBodyFat === null || targetBodyFat === "" ? NaN : Number(targetBodyFat);
   const fatPercentValues = [
     ...entries.map(point => point.bodyFat),
-    ...bodyFatForecast.map(point => point.value),
-    Number(targetBodyFat)
+    ...(Number.isFinite(targetBodyFatValue) ? [targetBodyFatValue] : [])
   ];
   const [leanMinRaw, leanMax] = valueExtent(leanValues, 0.22, 0.5);
   const leanMin = Math.max(0, leanMinRaw);
@@ -517,8 +514,8 @@ export function drawBodyCompositionChart(canvas, bodyAnalysis, { targetBodyFat =
   context.stroke();
   context.restore();
 
-  if (Number.isFinite(Number(targetBodyFat))) {
-    const y = fatPercentScale(Number(targetBodyFat));
+  if (Number.isFinite(targetBodyFatValue)) {
+    const y = fatPercentScale(targetBodyFatValue);
     context.save();
     context.strokeStyle = "rgba(53, 208, 127, 0.72)";
     context.lineWidth = 1.5;
@@ -530,7 +527,7 @@ export function drawBodyCompositionChart(canvas, bodyAnalysis, { targetBodyFat =
     context.fillStyle = COLORS.green;
     context.font = "11px system-ui, sans-serif";
     context.textAlign = "right";
-    context.fillText(`Target ${round(Number(targetBodyFat), 1)}%`, area.right, y - 7);
+    context.fillText(`Target ${round(targetBodyFatValue, 1)}%`, area.right, y - 7);
     context.restore();
   }
 
@@ -541,13 +538,6 @@ export function drawBodyCompositionChart(canvas, bodyAnalysis, { targetBodyFat =
     pointRadius: 3.6,
     label: "Lean mass"
   });
-  const leanForecastPoints = drawLine(context, leanForecast, xScale, leanScale, {
-    color: COLORS.cyan,
-    width: 2.1,
-    dash: [7, 7],
-    alpha: 0.78,
-    label: "Lean forecast"
-  });
   const fatMassPoints = drawLine(context, entries.map(point => ({ date: point.date, value: point.fatMass })), xScale, fatMassScale, {
     color: COLORS.yellow,
     width: 2.8,
@@ -555,36 +545,192 @@ export function drawBodyCompositionChart(canvas, bodyAnalysis, { targetBodyFat =
     pointRadius: 3.2,
     label: "Fat mass"
   });
-  const fatMassForecastPoints = drawLine(context, fatMassForecast, xScale, fatMassScale, {
-    color: COLORS.yellow,
-    width: 2,
-    dash: [7, 7],
-    alpha: 0.78,
-    label: "Fat forecast"
-  });
   const fatPercentPoints = drawLine(context, entries.map(point => ({ date: point.date, value: point.bodyFat })), xScale, fatPercentScale, {
     color: COLORS.purple,
     width: 2.2,
     dash: [6, 5],
     label: "Body fat"
   });
-  const bodyFatForecastPoints = drawLine(context, bodyFatForecast, xScale, fatPercentScale, {
-    color: COLORS.purple,
-    width: 2,
-    dash: [7, 7],
-    alpha: 0.78,
-    label: "BF forecast"
-  });
 
   const combined = [
     ...leanPoints.map(point => ({ ...point, unit: "kg" })),
-    ...leanForecastPoints.map(point => ({ ...point, unit: "kg" })),
     ...fatMassPoints.map(point => ({ ...point, unit: "kg" })),
-    ...fatMassForecastPoints.map(point => ({ ...point, unit: "kg" })),
-    ...fatPercentPoints.map(point => ({ ...point, unit: "%" })),
-    ...bodyFatForecastPoints.map(point => ({ ...point, unit: "%" }))
+    ...fatPercentPoints.map(point => ({ ...point, unit: "%" }))
   ];
   attachTooltip(canvas, combined, (value, point) => point.unit === "%" ? `${value.toFixed(1)}%` : `${value.toFixed(1)} kg`);
+}
+
+
+function numericMean(values) {
+  const valid = values.map(Number).filter(Number.isFinite);
+  if (!valid.length) return null;
+  return valid.reduce((sum, value) => sum + value, 0) / valid.length;
+}
+
+function drawNumericXAxis(context, area, minValue, maxValue, xScale, count = 5, suffix = "") {
+  context.save();
+  context.font = "11px system-ui, sans-serif";
+  context.fillStyle = COLORS.text;
+  context.textBaseline = "top";
+
+  for (let index = 0; index < count; index += 1) {
+    const ratio = count === 1 ? 0 : index / (count - 1);
+    const value = minValue + ratio * (maxValue - minValue);
+    const x = xScale(value);
+    context.textAlign = index === 0 ? "left" : index === count - 1 ? "right" : "center";
+    context.fillText(`${formatAxisNumber(value)}${suffix}`, x, area.bottom + 10);
+  }
+  context.restore();
+}
+
+function estimateCompositionAtWeight(baseline, weightKg) {
+  const delta = weightKg - baseline.weight;
+  const fatRatio = delta < 0 ? 0.85 : 0.4;
+  const leanRatio = 1 - fatRatio;
+  const fatMass = clamp(baseline.fatMass + delta * fatRatio, weightKg * 0.03, weightKg * 0.7);
+  const leanMass = Math.max(0, baseline.leanMass + delta * leanRatio);
+  return {
+    weight: weightKg,
+    fatMass,
+    leanMass,
+    bodyFat: fatMass / weightKg * 100
+  };
+}
+
+export function drawGoalCompositionProjectionChart(canvas, bodyAnalysis, goals = {}) {
+  const entries = bodyAnalysis?.entries ?? [];
+  const available = entries.length >= 1;
+  setChartAvailability(canvas, available);
+  if (!available) return;
+
+  const recent = entries.slice(-Math.min(3, entries.length));
+  const latest = entries.at(-1);
+  const baseline = {
+    weight: numericMean(recent.map(point => point.weight)),
+    fatMass: numericMean(recent.map(point => point.fatMass)),
+    leanMass: numericMean(recent.map(point => point.leanMass)),
+    bodyFat: numericMean(recent.map(point => point.bodyFat))
+  };
+  if (![baseline.weight, baseline.fatMass, baseline.leanMass, baseline.bodyFat].every(Number.isFinite)) return;
+
+  const targetWeight = Number(goals?.targetWeight);
+  const targetPadding = Number.isFinite(targetWeight) ? Math.abs(targetWeight - baseline.weight) + 3 : 0;
+  const span = Math.max(6, targetPadding, baseline.weight * 0.1);
+  const minWeight = Math.max(30, Math.floor((baseline.weight - span) * 2) / 2);
+  const maxWeight = Math.max(minWeight + 4, Math.ceil((baseline.weight + span) * 2) / 2);
+  const points = [];
+  const steps = 48;
+  for (let index = 0; index <= steps; index += 1) {
+    const weight = minWeight + (index / steps) * (maxWeight - minWeight);
+    points.push(estimateCompositionAtWeight(baseline, weight));
+  }
+
+  const { context, width, height } = prepareCanvas(canvas);
+  const area = chartArea(width, height, { left: 52, right: 22, bottom: 38, top: 22 });
+  const yValues = [
+    ...points.map(point => point.bodyFat),
+    latest.bodyFat,
+    baseline.bodyFat
+  ];
+  const [yMinRaw, yMaxRaw] = valueExtent(yValues, 0.18, 1.2);
+  const yMin = Math.max(2, yMinRaw);
+  const yMax = Math.min(70, Math.max(yMaxRaw, yMin + 2));
+  const xScale = scaleLinear(minWeight, maxWeight, area.left, area.right);
+  const yScale = scaleLinear(yMin, yMax, area.bottom, area.top);
+
+  drawGrid(context, area, yMin, yMax, yScale, 4, value => `${formatAxisNumber(value)}%`);
+  drawNumericXAxis(context, area, minWeight, maxWeight, xScale, 5, " kg");
+
+  context.save();
+  context.font = "11px system-ui, sans-serif";
+  context.fillStyle = COLORS.text;
+  context.textAlign = "left";
+  context.fillText("Body fat %", area.left, area.top - 9);
+  context.textAlign = "right";
+  context.fillText("Body weight", area.right, area.bottom + 25);
+  context.restore();
+
+  const hitPoints = [];
+  context.save();
+  context.strokeStyle = COLORS.purple;
+  context.lineWidth = 3;
+  context.beginPath();
+  points.forEach((point, index) => {
+    const x = xScale(point.weight);
+    const y = yScale(point.bodyFat);
+    if (index === 0) context.moveTo(x, y);
+    else context.lineTo(x, y);
+    hitPoints.push({
+      x,
+      y,
+      point: { label: `${point.weight.toFixed(1)} kg`, value: point.bodyFat },
+      series: "Estimated body fat",
+      color: COLORS.purple,
+      composition: point
+    });
+  });
+  context.stroke();
+  context.restore();
+
+  if (Number.isFinite(targetWeight) && targetWeight >= minWeight && targetWeight <= maxWeight) {
+    const target = estimateCompositionAtWeight(baseline, targetWeight);
+    const x = xScale(targetWeight);
+    context.save();
+    context.strokeStyle = COLORS.green;
+    context.lineWidth = 1.6;
+    context.setLineDash([6, 6]);
+    context.beginPath();
+    context.moveTo(x, area.top);
+    context.lineTo(x, area.bottom);
+    context.stroke();
+    context.fillStyle = COLORS.green;
+    context.font = "11px system-ui, sans-serif";
+    context.textAlign = "center";
+    context.fillText(`Target ${round(targetWeight, 1)} kg`, x, area.top + 12);
+    context.restore();
+
+    hitPoints.push({
+      x,
+      y: yScale(target.bodyFat),
+      point: { label: `Target ${targetWeight.toFixed(1)} kg`, value: target.bodyFat },
+      series: "Target estimate",
+      color: COLORS.green,
+      composition: target
+    });
+  }
+
+  const currentX = xScale(latest.weight);
+  const currentY = yScale(latest.bodyFat);
+  context.save();
+  context.fillStyle = COLORS.blue;
+  context.beginPath();
+  context.arc(currentX, currentY, 5, 0, Math.PI * 2);
+  context.fill();
+  context.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--chart-point-outline").trim() || "rgba(5, 11, 20, 0.8)";
+  context.lineWidth = 2.2;
+  context.beginPath();
+  context.arc(currentX, currentY, 5, 0, Math.PI * 2);
+  context.stroke();
+  context.fillStyle = COLORS.blue;
+  context.font = "11px system-ui, sans-serif";
+  context.textAlign = "left";
+  context.fillText("Current", Math.min(currentX + 8, area.right - 46), Math.max(area.top + 12, currentY - 9));
+  context.restore();
+
+  hitPoints.push({
+    x: currentX,
+    y: currentY,
+    point: { label: `Current ${latest.weight.toFixed(1)} kg`, value: latest.bodyFat },
+    series: "Current measurement",
+    color: COLORS.blue,
+    composition: latest
+  });
+
+  attachTooltip(canvas, hitPoints, (value, point) => {
+    const composition = point.composition;
+    if (!composition) return `${value.toFixed(1)}%`;
+    return `${value.toFixed(1)}% · fat ${composition.fatMass.toFixed(1)} kg · lean ${composition.leanMass.toFixed(1)} kg`;
+  });
 }
 
 function bodyFatBands(referenceSex) {

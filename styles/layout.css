@@ -412,3 +412,7 @@
 .analytics-grid.quality-panel-hidden #maintenance-analysis-card {
   grid-column: 1 / -1;
 }
+
+.goal-composition-card {
+  grid-column: 1 / -1;
+}

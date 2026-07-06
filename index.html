@@ -169,7 +169,7 @@
                 <span class="goal-countdown-icon" aria-hidden="true">◎</span>
                 <div class="goal-countdown-copy">
                   <strong id="goal-days-value">—</strong>
-                  <span id="goal-days-label">Set a body-fat target</span>
+                  <span id="goal-days-label">Set a target weight</span>
                   <small id="goal-countdown-meta">The estimate will use your body-fat trend.</small>
                 </div>
               </div>
@@ -222,7 +222,7 @@
                 <div><p class="eyebrow">WEIGHT EVOLUTION</p><h3>Measured, smoothed and predicted</h3><p id="diet-phase-copy" class="trend-phase-copy">Current phase is estimated from recent weight velocity and calorie balance.</p></div>
                 <div class="trend-header-meta"><span id="diet-phase-badge" class="diet-phase-badge phase-maintain">Maintain</span><span id="trend-window-badge" class="metric-tag"></span></div>
               </div>
-              <div class="chart-wrap tall"><canvas id="trend-weight-chart"></canvas><div class="chart-empty" data-empty-for="trend-weight-chart">Add at least two weight measurements.</div></div>
+              <div class="chart-wrap tall trend-weight-wrap"><canvas id="trend-weight-chart"></canvas><div class="chart-empty" data-empty-for="trend-weight-chart">Add at least two weight measurements.</div></div>
             </article>
 
             <article class="metric-stack glass-panel">
@@ -236,7 +236,7 @@
                 <div><p class="eyebrow">ENERGY BALANCE</p><h3>Calorie intake and maintenance estimate</h3></div>
                 <span id="maintenance-confidence" class="confidence-badge">No estimate</span>
               </div>
-              <div class="chart-wrap tall"><canvas id="maintenance-chart"></canvas><div class="chart-empty" data-empty-for="maintenance-chart">Add calorie entries and regular weight measurements.</div></div>
+              <div class="chart-wrap tall maintenance-wrap"><canvas id="maintenance-chart"></canvas><div class="chart-empty" data-empty-for="maintenance-chart">Add calorie entries and regular weight measurements.</div></div>
               <div class="formula-note">
                 <strong id="maintenance-summary">—</strong>
                 <span id="maintenance-explanation">Maintenance is estimated from average intake and the measured weight trend.</span>
@@ -280,7 +280,6 @@
                   <span><i class="legend-dot lean"></i>Lean kg</span>
                   <span><i class="legend-dot fat"></i>Fat kg</span>
                   <span><i class="legend-dot body-fat"></i>Body fat %</span>
-                  <span><i class="legend-dot forecast"></i>Forecast</span>
                 </div>
               </div>
               <div class="chart-wrap body-composition-wrap"><canvas id="body-composition-chart"></canvas><div class="chart-empty" data-empty-for="body-composition-chart">Add at least two body-composition entries.</div></div>
@@ -290,7 +289,11 @@
               <div class="panel-heading">
                 <div><p class="eyebrow">PHYSIQUE MAP</p><h3>Body fat vs <span id="map-metric-name">FFMI</span></h3></div>
               </div>
-              <div class="chart-wrap physique-map-wrap"><canvas id="physique-map-chart"></canvas><div class="chart-empty" data-empty-for="physique-map-chart">Add body-fat data and set your height.</div></div>
+              <div class="chart-wrap physique-map-wrap">
+                <button class="plot-info-button" data-open-modal="physique-info" type="button" aria-label="Show physique map category ranges">i</button>
+                <canvas id="physique-map-chart"></canvas>
+                <div class="chart-empty" data-empty-for="physique-map-chart">Add body-fat data and set your height.</div>
+              </div>
             </article>
           </div>
         </section>
@@ -300,7 +303,7 @@
             <article class="goal-form-card glass-panel">
               <div class="panel-heading"><div><p class="eyebrow">TARGETS</p><h3>Set your goals</h3></div></div>
               <form id="goals-form" class="stack-form">
-                <label class="field"><span>Target body fat (%)</span><input id="goal-body-fat-input" type="number" min="2" max="70" step="0.1" placeholder="12.0"></label>
+                <label class="field"><span>Target weight (kg)</span><input id="goal-weight-input" type="number" min="20" max="500" step="0.1" placeholder="68.0"></label>
                 <label class="field"><span>Target daily calorie deficit</span><input id="goal-deficit-input" type="number" min="0" max="1500" step="25" placeholder="300"></label>
                 <label class="field"><span>Optional target date</span><input id="goal-date-input" type="date"></label>
                 <button class="primary-button" type="submit">Save goals</button>
@@ -313,12 +316,24 @@
               <h3 id="goal-forecast-title">Set a target to begin</h3>
               <div class="forecast-number"><strong id="goal-days-remaining">—</strong><span>estimated days</span></div>
               <div class="goal-stat-list">
-                <div><span>Current BF trend</span><strong id="goal-current-trend">—</strong></div>
+                <div><span>Current weight trend</span><strong id="goal-current-trend">—</strong></div>
                 <div><span>Suggested intake</span><strong id="goal-suggested-intake">—</strong></div>
                 <div><span>Predicted target date</span><strong id="goal-predicted-date">—</strong></div>
                 <div><span>Difference to target</span><strong id="goal-difference">—</strong></div>
               </div>
               <p class="disclaimer">Forecasts extrapolate recent data and may change as intake, activity, water and body composition change.</p>
+            </article>
+
+            <article class="chart-card glass-panel goal-composition-card">
+              <div class="panel-heading">
+                <div><p class="eyebrow">COMPOSITION ESTIMATE</p><h3>Weight vs body fat</h3><p class="plot-note">Uses your recent body-composition baseline and a conservative fat/lean change model.</p></div>
+                <div class="legend-row">
+                  <span><i class="legend-dot body-fat"></i>Estimated BF %</span>
+                  <span><i class="legend-dot raw"></i>Current</span>
+                  <span><i class="legend-dot forecast"></i>Target kg</span>
+                </div>
+              </div>
+              <div class="chart-wrap goal-composition-wrap"><canvas id="goal-composition-chart"></canvas><div class="chart-empty" data-empty-for="goal-composition-chart">Add at least one body-composition entry to estimate BF by body weight.</div></div>
             </article>
           </div>
         </section>
@@ -361,7 +376,7 @@
                   </div>
                 </div>
                 <div class="field setting-field">
-                  <div class="field-label-row"><label for="setting-prediction-days">Prediction horizon (days)</label><details class="setting-help"><summary aria-label="Explain prediction horizon">i</summary><p>Sets how far weight and body-composition trends are projected into the future. Longer forecasts are less certain.</p></details></div>
+                  <div class="field-label-row"><label for="setting-prediction-days">Prediction horizon (days)</label><details class="setting-help"><summary aria-label="Explain prediction horizon">i</summary><p>Sets how far the weight trend is projected into the future. Longer forecasts are less certain.</p></details></div>
                   <input id="setting-prediction-days" type="number" min="7" max="3650" step="1" inputmode="numeric">
                 </div>
                 <div class="field setting-field">
@@ -472,9 +487,82 @@
         </div>
         <label class="field"><span id="calorie-value-label">Calories for this day</span><input id="calorie-value" type="number" min="0" max="10000" step="10" inputmode="numeric" placeholder="2400" required></label>
         <div class="calorie-preview"><span>Stored as</span><strong id="calorie-daily-preview">— kcal/day</strong></div>
+        <button id="sync-nutripilot-button" class="secondary-button" type="button">Sync NutriPilot</button>
         <button class="primary-button" type="submit">Save calorie entry</button>
         <p id="calorie-form-message" class="form-message" aria-live="polite"></p>
       </form>
+    </section>
+
+    <section id="nutripilot-sync-modal" class="modal-card nutripilot-sync-card" data-modal="nutripilot-sync" hidden aria-modal="true" role="dialog" aria-labelledby="nutripilot-sync-title">
+      <div class="modal-heading">
+        <div><p class="eyebrow">NUTRIPILOT</p><h3 id="nutripilot-sync-title">Import weekly calories</h3></div>
+        <button class="icon-button" data-close-modal type="button">×</button>
+      </div>
+      <p class="nutripilot-sync-copy">Only completed past Monday–Sunday weeks are shown. Weeks with any existing CalStat calorie entry are skipped to avoid duplicates.</p>
+      <div class="nutripilot-toolbar">
+        <label class="nutripilot-select-all"><input id="nutripilot-select-all" type="checkbox" checked> Select all</label>
+        <span id="nutripilot-selection-summary" class="metric-tag">No importable weeks</span>
+      </div>
+      <div id="nutripilot-week-list" class="nutripilot-week-list"></div>
+      <p id="nutripilot-sync-status" class="form-message" aria-live="polite"></p>
+      <div class="two-button-row">
+        <button class="secondary-button" data-close-modal type="button">Cancel</button>
+        <button id="nutripilot-import-confirm" class="primary-button" type="button">Add selected weeks</button>
+      </div>
+    </section>
+
+    <section id="physique-info-modal" class="modal-card physique-info-card" data-modal="physique-info" hidden aria-modal="true" role="dialog" aria-labelledby="physique-info-title">
+      <div class="modal-heading">
+        <div><p class="eyebrow">PHYSIQUE MAP</p><h3 id="physique-info-title">Category value ranges</h3></div>
+        <button class="icon-button" data-close-modal type="button">×</button>
+      </div>
+      <p class="range-modal-copy">These ranges define the background zones used by the physique map. Body-fat and normalized FFMI ranges depend on the selected reference profile. BMI ranges are shared.</p>
+
+      <div class="range-section-grid">
+        <section class="range-table-block">
+          <h4>Body fat %</h4>
+          <table class="range-table">
+            <thead><tr><th>Category</th><th>Male ref.</th><th>Female ref.</th></tr></thead>
+            <tbody>
+              <tr><td>Essential</td><td>2–6%</td><td>5–14%</td></tr>
+              <tr><td>Athletic</td><td>6–14%</td><td>14–21%</td></tr>
+              <tr><td>Fitness</td><td>14–18%</td><td>21–25%</td></tr>
+              <tr><td>Average</td><td>18–25%</td><td>25–32%</td></tr>
+              <tr><td>High fat</td><td>25%+</td><td>32%+</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="range-table-block">
+          <h4>Normalized FFMI</h4>
+          <table class="range-table">
+            <thead><tr><th>Category</th><th>Male ref.</th><th>Female ref.</th></tr></thead>
+            <tbody>
+              <tr><td>Below reference</td><td>&lt; 16</td><td>&lt; 14</td></tr>
+              <tr><td>Average</td><td>16–18</td><td>14–16</td></tr>
+              <tr><td>Above average</td><td>18–20</td><td>16–18</td></tr>
+              <tr><td>Athletic</td><td>20–22</td><td>18–20</td></tr>
+              <tr><td>Highly muscular</td><td>22–25</td><td>20–22</td></tr>
+              <tr><td>Exceptional</td><td>25+</td><td>22+</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="range-table-block range-table-block-wide">
+          <h4>BMI</h4>
+          <table class="range-table">
+            <thead><tr><th>Category</th><th>Range</th></tr></thead>
+            <tbody>
+              <tr><td>Underweight</td><td>&lt; 18.5</td></tr>
+              <tr><td>Healthy weight</td><td>18.5–25</td></tr>
+              <tr><td>Overweight</td><td>25–30</td></tr>
+              <tr><td>Obesity class I</td><td>30–35</td></tr>
+              <tr><td>Obesity class II</td><td>35–40</td></tr>
+              <tr><td>Obesity class III</td><td>40+</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
     </section>
 
     <section id="sync-conflict-modal" class="modal-card sync-conflict-card" data-modal="sync-conflict" hidden aria-modal="true" role="dialog" aria-labelledby="sync-conflict-title">

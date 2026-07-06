@@ -97,6 +97,10 @@ function userCollection(userId, name) {
   return collection(db, "apps", "weight-tracker", "users", userId, name);
 }
 
+function foodTrackerCollection(userId, name) {
+  return collection(db, "apps", "food-tracker", "users", userId, name);
+}
+
 function userDoc(userId, collectionName, documentId) {
   return doc(db, "apps", "weight-tracker", "users", userId, collectionName, documentId);
 }
@@ -178,6 +182,76 @@ function sortByDateDescending(entries) {
   return entries
     .filter(entry => entry.date)
     .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function parseLocalDate(dateString) {
+  return new Date(`${dateString}T00:00:00`);
+}
+
+function localDateString(date) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 10);
+}
+
+function addDaysString(dateString, days) {
+  const date = parseLocalDate(dateString);
+  date.setDate(date.getDate() + days);
+  return localDateString(date);
+}
+
+function startOfWeekString(dateString) {
+  const date = parseLocalDate(dateString);
+  const day = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - day);
+  return localDateString(date);
+}
+
+function currentDateString() {
+  return localDateString(new Date());
+}
+
+function hasCalorieEntryInWeek(startDate, endDate) {
+  return state.calorieEntries.some(entry => entry.date >= startDate && entry.date <= endDate);
+}
+
+function normalizeNutriPilotWeeklyCache(document) {
+  const data = document.data();
+  const start = typeof data.start === "string" && ISO_DATE_PATTERN.test(data.start) ? data.start : null;
+  const end = typeof data.end === "string" && ISO_DATE_PATTERN.test(data.end) ? data.end : null;
+  const totalKcal = Number(data.total?.kcal);
+  const activeDates = Array.isArray(data.activeDates)
+    ? data.activeDates.filter(date => typeof date === "string" && ISO_DATE_PATTERN.test(date))
+    : [];
+  const dates = Array.isArray(data.dates)
+    ? data.dates.filter(date => typeof date === "string" && ISO_DATE_PATTERN.test(date))
+    : [];
+
+  if (data.mode !== "week" || !document.id.startsWith("week_") || !start || !end || !Number.isFinite(totalKcal) || totalKcal <= 0) {
+    return null;
+  }
+
+  const activeDayCount = activeDates.length;
+  const calendarDayCount = dates.length || Math.max(1, Number(data.dayCount) || 7);
+  if (activeDayCount <= 0 || data.dirty === true) return null;
+
+  const averageKcal = totalKcal / Math.max(1, activeDayCount);
+  const calendarAverageKcal = totalKcal / Math.max(1, calendarDayCount);
+
+  return {
+    id: document.id,
+    start,
+    end,
+    date: end,
+    totalKcal,
+    averageKcal,
+    calendarAverageKcal,
+    activeDayCount,
+    calendarDayCount,
+    sourceEntryCount: Number(data.sourceEntryCount) || 0,
+    generatedAt: timestampToMillis(data.generatedAt) || Number(data.generatedAt) || 0
+  };
 }
 
 function migrateSettings(storedSettings = {}) {
@@ -1066,6 +1140,39 @@ export function saveCalories({ date, mode, value }) {
     value: numericValue,
     dailyAverage: numericValue
   });
+}
+
+export async function fetchNutriPilotWeeklyCalories() {
+  const user = requireUser();
+  if (shouldUseDeviceOnly()) {
+    throw new Error("NutriPilot sync needs an online Firebase session.");
+  }
+
+  const currentWeekStart = startOfWeekString(currentDateString());
+  const snapshot = await getDocsFromServer(foodTrackerCollection(user.uid, "reportCaches"));
+
+  return snapshot.docs
+    .map(normalizeNutriPilotWeeklyCache)
+    .filter(Boolean)
+    .filter(week => week.end < currentWeekStart)
+    .filter(week => !hasCalorieEntryInWeek(week.start, week.end))
+    .sort((a, b) => b.end.localeCompare(a.end));
+}
+
+export async function saveWeeklyCalorieEntries(entries) {
+  const validEntries = (entries ?? [])
+    .map(entry => ({
+      date: entry.date,
+      mode: "weekly",
+      value: Number(entry.value)
+    }))
+    .filter(entry => entry.date && Number.isFinite(entry.value) && entry.value > 0);
+
+  for (const entry of validEntries) {
+    await saveCalories(entry);
+  }
+
+  return { imported: validEntries.length };
 }
 
 export async function saveGoals(goals) {

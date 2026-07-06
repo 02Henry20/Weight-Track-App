@@ -276,18 +276,18 @@
   }
 
   #trend-window-badge {
-    min-width: 230px;
-    flex-direction: row;
+    min-width: 164px;
+    flex-direction: column;
     align-items: center;
-    gap: 0;
-    padding-inline: 10px;
-    line-height: 1.2;
+    gap: 2px;
+    padding: 6px 10px;
+    line-height: 1.18;
     white-space: nowrap;
   }
 
   #trend-window-badge span + span::before {
-    content: "·";
-    margin: 0 6px;
+    content: "";
+    margin: 0;
   }
 
   .content-scroll {
@@ -338,7 +338,12 @@
 
   .chart-wrap.tall,
   .overview-chart-wrap {
-    min-height: 260px;
+    min-height: 248px;
+  }
+
+  .trend-weight-wrap,
+  .maintenance-wrap {
+    min-height: 238px;
   }
 
   .physique-map-wrap {
@@ -380,6 +385,20 @@
 
   .history-row {
     grid-template-columns: 1fr auto auto;
+  }
+
+  .nutripilot-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .nutripilot-week-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .nutripilot-week-value {
+    grid-column: 2;
+    justify-self: start;
   }
 
   .modal-backdrop {
@@ -487,5 +506,11 @@
 @media (max-width: 680px) {
   .body-metric-grid .metric-card.accent {
     grid-column: auto;
+  }
+}
+
+@media (max-width: 680px) {
+  .goal-composition-wrap {
+    min-height: 270px;
   }
 }
