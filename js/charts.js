@@ -203,49 +203,89 @@ function tooltipElement() {
   return tooltip;
 }
 
+let pinnedTooltipCanvas = null;
+let tooltipDismissBound = false;
+
+function nearestTooltipPoint(canvas, event, maxDistance = 42) {
+  const points = canvas.__hitPoints ?? [];
+  if (!points.length) return null;
+
+  const rectangle = canvas.getBoundingClientRect();
+  const x = event.clientX - rectangle.left;
+  const y = event.clientY - rectangle.top;
+  let nearest = null;
+  let distance = Infinity;
+
+  for (const point of points) {
+    const candidate = Math.hypot(point.x - x, point.y - y);
+    if (candidate < distance) {
+      distance = candidate;
+      nearest = point;
+    }
+  }
+
+  return nearest && distance <= maxDistance ? nearest : null;
+}
+
+function showTooltipForPoint(canvas, event, point) {
+  const tooltip = tooltipElement();
+  const value = Number(point.point.value);
+  tooltip.innerHTML = `<strong style="color:${point.color}">${point.series}</strong><span>${formatShortDate(point.point.date)} · ${canvas.__valueFormatter(value, point)}</span>`;
+  tooltip.style.left = `${event.clientX}px`;
+  tooltip.style.top = `${event.clientY}px`;
+  tooltip.hidden = false;
+}
+
+function hideTooltip() {
+  const tooltip = tooltipElement();
+  tooltip.hidden = true;
+  pinnedTooltipCanvas = null;
+}
+
+function bindTooltipDismissal() {
+  if (tooltipDismissBound) return;
+  tooltipDismissBound = true;
+  document.addEventListener("pointerdown", event => {
+    if (!pinnedTooltipCanvas) return;
+    if (event.target === pinnedTooltipCanvas) return;
+    hideTooltip();
+  });
+}
+
 function attachTooltip(canvas, hitPoints, valueFormatter = value => String(value)) {
   canvas.__hitPoints = hitPoints;
   canvas.__valueFormatter = valueFormatter;
 
   if (canvas.__tooltipBound) return;
   canvas.__tooltipBound = true;
+  bindTooltipDismissal();
   const tooltip = tooltipElement();
 
+  canvas.addEventListener("pointerdown", event => {
+    if (event.pointerType !== "touch" && event.pointerType !== "pen") return;
+    const nearest = nearestTooltipPoint(canvas, event, 48);
+    if (!nearest) {
+      hideTooltip();
+      return;
+    }
+    pinnedTooltipCanvas = canvas;
+    showTooltipForPoint(canvas, event, nearest);
+  });
+
   canvas.addEventListener("pointermove", event => {
-    const points = canvas.__hitPoints ?? [];
-    if (!points.length) {
-      tooltip.hidden = true;
+    if (pinnedTooltipCanvas === canvas && (event.pointerType === "touch" || event.pointerType === "pen")) return;
+
+    const nearest = nearestTooltipPoint(canvas, event);
+    if (!nearest) {
+      if (pinnedTooltipCanvas !== canvas) tooltip.hidden = true;
       return;
     }
 
-    const rectangle = canvas.getBoundingClientRect();
-    const x = event.clientX - rectangle.left;
-    const y = event.clientY - rectangle.top;
-    let nearest = null;
-    let distance = Infinity;
-
-    for (const point of points) {
-      const candidate = Math.hypot(point.x - x, point.y - y);
-      if (candidate < distance) {
-        distance = candidate;
-        nearest = point;
-      }
-    }
-
-    if (!nearest || distance > 42) {
-      tooltip.hidden = true;
-      return;
-    }
-
-    const value = Number(nearest.point.value);
-    tooltip.innerHTML = `<strong style="color:${nearest.color}">${nearest.series}</strong><span>${formatShortDate(nearest.point.date)} · ${canvas.__valueFormatter(value, nearest)}</span>`;
-    tooltip.style.left = `${event.clientX}px`;
-    tooltip.style.top = `${event.clientY}px`;
-    tooltip.hidden = false;
+    showTooltipForPoint(canvas, event, nearest);
   });
 
   canvas.addEventListener("pointerleave", () => {
-    tooltip.hidden = true;
+    if (pinnedTooltipCanvas !== canvas) tooltip.hidden = true;
   });
 }
 
@@ -408,19 +448,28 @@ export function drawMaintenanceChart(canvas, maintenanceAnalysis, settings) {
   attachTooltip(canvas, [...calorieHitPoints, ...maintenancePoints], value => `${Math.round(value)} kcal/day`);
 }
 
-export function drawBodyCompositionChart(canvas, bodyAnalysis) {
+export function drawBodyCompositionChart(canvas, bodyAnalysis, { targetBodyFat = null } = {}) {
   const entries = bodyAnalysis.entries ?? [];
   const available = entries.length >= 2;
   setChartAvailability(canvas, available);
   if (!available) return;
 
+  const forecasts = bodyAnalysis.forecast ?? {};
+  const leanForecast = forecasts.leanMass ?? [];
+  const fatMassForecast = forecasts.fatMass ?? [];
+  const bodyFatForecast = forecasts.bodyFat ?? [];
+
   const { context, width, height } = prepareCanvas(canvas);
   const compact = width <= 560;
   const area = chartArea(width, height, { left: 58, right: compact ? 88 : 116, bottom: 38 });
-  const [minTime, maxTime] = dateExtent([entries]);
-  const leanValues = entries.map(point => point.leanMass);
-  const fatMassValues = entries.map(point => point.fatMass);
-  const fatPercentValues = entries.map(point => point.bodyFat);
+  const [minTime, maxTime] = dateExtent([entries, leanForecast, fatMassForecast, bodyFatForecast]);
+  const leanValues = [...entries.map(point => point.leanMass), ...leanForecast.map(point => point.value)];
+  const fatMassValues = [...entries.map(point => point.fatMass), ...fatMassForecast.map(point => point.value)];
+  const fatPercentValues = [
+    ...entries.map(point => point.bodyFat),
+    ...bodyFatForecast.map(point => point.value),
+    Number(targetBodyFat)
+  ];
   const [leanMinRaw, leanMax] = valueExtent(leanValues, 0.22, 0.5);
   const leanMin = Math.max(0, leanMinRaw);
   const [fatMassMinRaw, fatMassMax] = valueExtent(fatMassValues, 0.22, 0.4);
@@ -468,12 +517,36 @@ export function drawBodyCompositionChart(canvas, bodyAnalysis) {
   context.stroke();
   context.restore();
 
+  if (Number.isFinite(Number(targetBodyFat))) {
+    const y = fatPercentScale(Number(targetBodyFat));
+    context.save();
+    context.strokeStyle = "rgba(53, 208, 127, 0.72)";
+    context.lineWidth = 1.5;
+    context.setLineDash([6, 6]);
+    context.beginPath();
+    context.moveTo(area.left, y);
+    context.lineTo(area.right, y);
+    context.stroke();
+    context.fillStyle = COLORS.green;
+    context.font = "11px system-ui, sans-serif";
+    context.textAlign = "right";
+    context.fillText(`Target ${round(Number(targetBodyFat), 1)}%`, area.right, y - 7);
+    context.restore();
+  }
+
   const leanPoints = drawLine(context, entries.map(point => ({ date: point.date, value: point.leanMass })), xScale, leanScale, {
     color: COLORS.cyan,
     width: 3,
     points: true,
     pointRadius: 3.6,
     label: "Lean mass"
+  });
+  const leanForecastPoints = drawLine(context, leanForecast, xScale, leanScale, {
+    color: COLORS.cyan,
+    width: 2.1,
+    dash: [7, 7],
+    alpha: 0.78,
+    label: "Lean forecast"
   });
   const fatMassPoints = drawLine(context, entries.map(point => ({ date: point.date, value: point.fatMass })), xScale, fatMassScale, {
     color: COLORS.yellow,
@@ -482,17 +555,34 @@ export function drawBodyCompositionChart(canvas, bodyAnalysis) {
     pointRadius: 3.2,
     label: "Fat mass"
   });
+  const fatMassForecastPoints = drawLine(context, fatMassForecast, xScale, fatMassScale, {
+    color: COLORS.yellow,
+    width: 2,
+    dash: [7, 7],
+    alpha: 0.78,
+    label: "Fat forecast"
+  });
   const fatPercentPoints = drawLine(context, entries.map(point => ({ date: point.date, value: point.bodyFat })), xScale, fatPercentScale, {
     color: COLORS.purple,
     width: 2.2,
     dash: [6, 5],
     label: "Body fat"
   });
+  const bodyFatForecastPoints = drawLine(context, bodyFatForecast, xScale, fatPercentScale, {
+    color: COLORS.purple,
+    width: 2,
+    dash: [7, 7],
+    alpha: 0.78,
+    label: "BF forecast"
+  });
 
   const combined = [
     ...leanPoints.map(point => ({ ...point, unit: "kg" })),
+    ...leanForecastPoints.map(point => ({ ...point, unit: "kg" })),
     ...fatMassPoints.map(point => ({ ...point, unit: "kg" })),
-    ...fatPercentPoints.map(point => ({ ...point, unit: "%" }))
+    ...fatMassForecastPoints.map(point => ({ ...point, unit: "kg" })),
+    ...fatPercentPoints.map(point => ({ ...point, unit: "%" })),
+    ...bodyFatForecastPoints.map(point => ({ ...point, unit: "%" }))
   ];
   attachTooltip(canvas, combined, (value, point) => point.unit === "%" ? `${value.toFixed(1)}%` : `${value.toFixed(1)} kg`);
 }

@@ -162,36 +162,23 @@
 
             <article class="goal-card glass-panel reveal-card">
               <div class="panel-heading compact-heading">
-                <div><p class="eyebrow">TARGET</p><h3>Weight goal</h3></div>
+                <div><p class="eyebrow">TARGET</p><h3>Body-fat goal</h3></div>
                 <button class="icon-button" data-go-view="goals" type="button" aria-label="Open goals">→</button>
               </div>
-              <div class="goal-countdown" aria-label="Distance to target weight">
+              <div class="goal-countdown" aria-label="Distance to target body fat">
                 <span class="goal-countdown-icon" aria-hidden="true">◎</span>
                 <div class="goal-countdown-copy">
                   <strong id="goal-days-value">—</strong>
-                  <span id="goal-days-label">Set a target weight</span>
-                  <small id="goal-countdown-meta">The estimate will use your current trend.</small>
+                  <span id="goal-days-label">Set a body-fat target</span>
+                  <small id="goal-countdown-meta">The estimate will use your body-fat trend.</small>
                 </div>
               </div>
               <div class="goal-details">
-                <div><span>Target</span><strong id="goal-target-weight">—</strong></div>
+                <div><span>Target BF</span><strong id="goal-target-weight">—</strong></div>
                 <div><span>Projected ETA</span><strong id="goal-eta">—</strong></div>
               </div>
             </article>
 
-            <article class="quick-actions glass-panel reveal-card">
-              <div class="panel-heading compact-heading"><div><p class="eyebrow">QUICK ENTRY</p><h3>Log data</h3></div></div>
-              <div class="quick-action-grid">
-                <button data-open-modal="weight" type="button"><span class="action-symbol action-weight">⚖</span><strong>Weight</strong><small>Daily measurement</small></button>
-                <button data-open-modal="body" type="button"><span class="action-symbol action-body">◑</span><strong>Body fat</strong><small>Composition check</small></button>
-                <button data-open-modal="calories" type="button"><span class="action-symbol action-calories">⚡</span><strong>Calories</strong><small>Daily or weekly avg</small></button>
-              </div>
-            </article>
-
-            <article class="insight-card glass-panel reveal-card span-2">
-              <div class="panel-heading compact-heading"><div><p class="eyebrow">LATEST INSIGHT</p><h3 id="insight-title">Build your baseline</h3></div><span id="insight-confidence" class="confidence-badge">No data</span></div>
-              <p id="insight-text">Log weight regularly and add calorie averages. The app will estimate your underlying trend, maintenance calories and future trajectory.</p>
-            </article>
           </div>
         </section>
 
@@ -293,6 +280,7 @@
                   <span><i class="legend-dot lean"></i>Lean kg</span>
                   <span><i class="legend-dot fat"></i>Fat kg</span>
                   <span><i class="legend-dot body-fat"></i>Body fat %</span>
+                  <span><i class="legend-dot forecast"></i>Forecast</span>
                 </div>
               </div>
               <div class="chart-wrap body-composition-wrap"><canvas id="body-composition-chart"></canvas><div class="chart-empty" data-empty-for="body-composition-chart">Add at least two body-composition entries.</div></div>
@@ -312,7 +300,7 @@
             <article class="goal-form-card glass-panel">
               <div class="panel-heading"><div><p class="eyebrow">TARGETS</p><h3>Set your goals</h3></div></div>
               <form id="goals-form" class="stack-form">
-                <label class="field"><span>Target weight (kg)</span><input id="goal-weight-input" type="number" min="20" max="500" step="0.1" placeholder="68.0"></label>
+                <label class="field"><span>Target body fat (%)</span><input id="goal-body-fat-input" type="number" min="2" max="70" step="0.1" placeholder="12.0"></label>
                 <label class="field"><span>Target daily calorie deficit</span><input id="goal-deficit-input" type="number" min="0" max="1500" step="25" placeholder="300"></label>
                 <label class="field"><span>Optional target date</span><input id="goal-date-input" type="date"></label>
                 <button class="primary-button" type="submit">Save goals</button>
@@ -325,7 +313,7 @@
               <h3 id="goal-forecast-title">Set a target to begin</h3>
               <div class="forecast-number"><strong id="goal-days-remaining">—</strong><span>estimated days</span></div>
               <div class="goal-stat-list">
-                <div><span>Current trend</span><strong id="goal-current-trend">—</strong></div>
+                <div><span>Current BF trend</span><strong id="goal-current-trend">—</strong></div>
                 <div><span>Suggested intake</span><strong id="goal-suggested-intake">—</strong></div>
                 <div><span>Predicted target date</span><strong id="goal-predicted-date">—</strong></div>
                 <div><span>Difference to target</span><strong id="goal-difference">—</strong></div>
@@ -373,7 +361,7 @@
                   </div>
                 </div>
                 <div class="field setting-field">
-                  <div class="field-label-row"><label for="setting-prediction-days">Prediction horizon (days)</label><details class="setting-help"><summary aria-label="Explain prediction horizon">i</summary><p>Sets how far the current weight trend is projected into the future. Longer forecasts are less certain.</p></details></div>
+                  <div class="field-label-row"><label for="setting-prediction-days">Prediction horizon (days)</label><details class="setting-help"><summary aria-label="Explain prediction horizon">i</summary><p>Sets how far weight and body-composition trends are projected into the future. Longer forecasts are less certain.</p></details></div>
                   <input id="setting-prediction-days" type="number" min="7" max="3650" step="1" inputmode="numeric">
                 </div>
                 <div class="field setting-field">

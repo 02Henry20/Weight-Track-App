@@ -36,6 +36,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
 });
 
 export const DEFAULT_GOALS = Object.freeze({
+  targetBodyFat: null,
   targetWeight: null,
   dailyDeficit: 300,
   targetDate: ""
@@ -206,10 +207,14 @@ function migrateSettings(storedSettings = {}) {
 }
 
 function normalizeGoals(storedGoals = {}) {
+  const targetBodyFat = storedGoals.targetBodyFat == null || storedGoals.targetBodyFat === ""
+    ? null
+    : cleanNumber(storedGoals.targetBodyFat, null);
   const targetWeight = storedGoals.targetWeight == null || storedGoals.targetWeight === ""
     ? null
     : cleanNumber(storedGoals.targetWeight, null);
   return {
+    targetBodyFat,
     targetWeight,
     dailyDeficit: cleanNumber(storedGoals.dailyDeficit, DEFAULT_GOALS.dailyDeficit),
     targetDate: typeof storedGoals.targetDate === "string" ? storedGoals.targetDate : ""
@@ -400,7 +405,7 @@ function hasUserData(snapshot) {
     snapshot.weights?.length ||
     snapshot.bodyEntries?.length ||
     snapshot.calorieEntries?.length ||
-    snapshot.goals?.targetWeight != null && Number.isFinite(Number(snapshot.goals.targetWeight))
+    snapshot.goals?.targetBodyFat != null && Number.isFinite(Number(snapshot.goals.targetBodyFat))
   );
 }
 
@@ -643,6 +648,7 @@ function settingsToCloudData(settings, updatedAtMs) {
 
 function goalsToCloudData(goals, updatedAtMs) {
   return {
+    targetBodyFat: goals.targetBodyFat == null || goals.targetBodyFat === "" ? null : Number(goals.targetBodyFat),
     targetWeight: goals.targetWeight == null || goals.targetWeight === "" ? null : Number(goals.targetWeight),
     dailyDeficit: Number(goals.dailyDeficit ?? 0),
     targetDate: goals.targetDate ?? "",
@@ -1066,6 +1072,7 @@ export async function saveGoals(goals) {
   const user = requireUser();
   const now = Date.now();
   state.goals = {
+    targetBodyFat: goals.targetBodyFat == null || goals.targetBodyFat === "" ? null : Number(goals.targetBodyFat),
     targetWeight: goals.targetWeight == null || goals.targetWeight === "" ? null : Number(goals.targetWeight),
     dailyDeficit: Number(goals.dailyDeficit ?? 0),
     targetDate: goals.targetDate ?? ""

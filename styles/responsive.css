@@ -269,18 +269,25 @@
     display: none;
   }
 
+  .trend-header-meta {
+    width: 100%;
+    min-width: 0;
+    justify-content: flex-start;
+  }
+
   #trend-window-badge {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    padding-inline: 7px;
+    min-width: 230px;
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+    padding-inline: 10px;
     line-height: 1.2;
-    white-space: normal;
+    white-space: nowrap;
   }
 
   #trend-window-badge span + span::before {
-    content: "";
-    margin: 0;
+    content: "·";
+    margin: 0 6px;
   }
 
   .content-scroll {
@@ -331,7 +338,7 @@
 
   .chart-wrap.tall,
   .overview-chart-wrap {
-    min-height: 285px;
+    min-height: 260px;
   }
 
   .physique-map-wrap {
@@ -440,8 +447,7 @@
 }
 
 @media (max-width: 420px) {
-  .hero-grid,
-  .body-metric-grid {
+  .hero-grid {
     grid-template-columns: 1fr;
   }
 
@@ -475,5 +481,11 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .body-metric-grid .metric-card.accent {
+    grid-column: auto;
   }
 }

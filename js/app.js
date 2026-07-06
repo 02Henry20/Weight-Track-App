@@ -50,7 +50,7 @@ import {
   redrawOnResize
 } from "./charts.js";
 
-const APP_VERSION = "2.4.3";
+const APP_VERSION = "2.4.4";
 
 const VIEW_LABELS = {
   overview: ["TODAY'S SIGNAL", "Overview"],
@@ -511,13 +511,13 @@ async function submitCalories(event) {
 
 function submitGoals(event) {
   event.preventDefault();
-  const targetWeight = document.querySelector("#goal-weight-input").value;
+  const targetBodyFat = document.querySelector("#goal-body-fat-input").value;
   const dailyDeficit = document.querySelector("#goal-deficit-input").value;
   const targetDate = document.querySelector("#goal-date-input").value;
   const message = document.querySelector("#goals-message");
 
-  if (targetWeight && (Number(targetWeight) < 20 || Number(targetWeight) > 500)) {
-    setFormMessage(message, "Target weight must be between 20 and 500 kg.", true);
+  if (targetBodyFat && (Number(targetBodyFat) < 2 || Number(targetBodyFat) > 70)) {
+    setFormMessage(message, "Target body fat must be between 2% and 70%.", true);
     return;
   }
   if (Number(dailyDeficit) < 0 || Number(dailyDeficit) > 1500) {
@@ -525,7 +525,7 @@ function submitGoals(event) {
     return;
   }
 
-  queueWrite(saveGoals({ targetWeight, dailyDeficit, targetDate }), "Goals saved");
+  queueWrite(saveGoals({ targetBodyFat, dailyDeficit, targetDate }), "Goals saved");
   setFormMessage(message, navigator.onLine ? "Goals saved and synchronizing with Firebase." : "Goals saved on this device.");
 }
 
@@ -737,24 +737,26 @@ function renderOverview(analyses) {
   const goalCountdownMeta = document.querySelector("#goal-countdown-meta");
   if (goalDifference == null) {
     goalDaysValue.textContent = "—";
-    goalDaysLabel.textContent = "Set a target weight";
-    goalCountdownMeta.textContent = "The estimate will use your current trend.";
-  } else if (Math.abs(goalDifference) <= 0.05) {
+    goalDaysLabel.textContent = goals.targetBodyFat == null ? "Set a body-fat target" : "Add body-composition data";
+    goalCountdownMeta.textContent = goals.targetBodyFat == null
+      ? "The estimate uses your body-fat trend."
+      : "Add at least two body-composition entries to estimate progress.";
+  } else if (Math.abs(goalDifference) <= 0.1) {
     goalDaysValue.textContent = "Reached";
-    goalDaysLabel.textContent = "Target achieved";
-    goalCountdownMeta.textContent = "You are at the configured target weight.";
+    goalDaysLabel.textContent = "Body-fat target achieved";
+    goalCountdownMeta.textContent = "You are at the configured target body-fat percentage.";
   } else if (goals.etaDays != null && goals.etaDate) {
-    goalDaysValue.textContent = `${Math.abs(goalDifference).toFixed(1)} kg`;
-    goalDaysLabel.textContent = goalDifference > 0 ? "to gain until target" : "to lose until target";
+    goalDaysValue.textContent = `${Math.abs(goalDifference).toFixed(1)} pp`;
+    goalDaysLabel.textContent = goalDifference > 0 ? "to gain until BF target" : "to lose until BF target";
     const daysLeft = Math.max(1, Math.ceil(goals.etaDays));
     goalCountdownMeta.textContent = `${daysLeft.toLocaleString()} day${daysLeft === 1 ? "" : "s"} · ETA ${formatLongDate(goals.etaDate)}`;
   } else {
-    goalDaysValue.textContent = `${Math.abs(goalDifference).toFixed(1)} kg`;
-    goalDaysLabel.textContent = goalDifference > 0 ? "to gain · trend not aligned" : "to lose · trend not aligned";
-    goalCountdownMeta.textContent = "Log more aligned measurements to estimate the date.";
+    goalDaysValue.textContent = `${Math.abs(goalDifference).toFixed(1)} pp`;
+    goalDaysLabel.textContent = goalDifference > 0 ? "to gain · BF trend not aligned" : "to lose · BF trend not aligned";
+    goalCountdownMeta.textContent = "Log more aligned composition entries to estimate the date.";
   }
-  setText("#goal-target-weight", goals.targetWeight == null ? "—" : `${goals.targetWeight.toFixed(1)} kg`);
-  setText("#goal-eta", goals.etaDate ? formatLongDate(goals.etaDate) : "Not enough trend");
+  setText("#goal-target-weight", goals.targetBodyFat == null ? "—" : `${goals.targetBodyFat.toFixed(1)}%`);
+  setText("#goal-eta", goals.etaDate ? formatLongDate(goals.etaDate) : "Not enough BF trend");
 
   setText("#insight-title", insight.title);
   setText("#insight-text", insight.text);
@@ -901,16 +903,16 @@ function renderBody(analyses) {
 
 function renderGoals(analyses) {
   const goals = analyses.goals;
-  setText("#goal-forecast-title", goals.targetWeight == null ? "Set a target to begin" : `Trajectory toward ${goals.targetWeight.toFixed(1)} kg`);
+  setText("#goal-forecast-title", goals.targetBodyFat == null ? "Set a body-fat target to begin" : `Trajectory toward ${goals.targetBodyFat.toFixed(1)}% body fat`);
   setText("#goal-days-remaining", goals.etaDays == null ? "—" : Math.round(goals.etaDays).toLocaleString());
-  setText("#goal-current-trend", analyses.weight.weeklyRate == null ? "—" : `${formatSigned(analyses.weight.weeklyRate, 2)} kg/week`);
+  setText("#goal-current-trend", goals.weeklyRate == null ? "—" : `${formatSigned(goals.weeklyRate, 2)} pp/week`);
   setText("#goal-suggested-intake", goals.suggestedIntake == null ? "—" : `${Math.round(goals.suggestedIntake).toLocaleString()} kcal/day`);
-  setText("#goal-predicted-date", goals.etaDate ? formatLongDate(goals.etaDate) : "Trend not aligned");
-  setText("#goal-difference", goals.difference == null ? "—" : `${formatSigned(goals.difference, 1)} kg`);
+  setText("#goal-predicted-date", goals.etaDate ? formatLongDate(goals.etaDate) : "BF trend not aligned");
+  setText("#goal-difference", goals.difference == null ? "—" : `${formatSigned(goals.difference, 1)} pp`);
 
   const form = document.querySelector("#goals-form");
   if (!form.contains(document.activeElement)) {
-    document.querySelector("#goal-weight-input").value = state.goals.targetWeight ?? "";
+    document.querySelector("#goal-body-fat-input").value = state.goals.targetBodyFat ?? "";
     document.querySelector("#goal-deficit-input").value = state.goals.dailyDeficit ?? 300;
     document.querySelector("#goal-date-input").value = state.goals.targetDate ?? "";
   }
@@ -1028,7 +1030,7 @@ function calculateAnalyses() {
   const maintenance = analyseMaintenance(state.weights, state.calorieEntries, state.settings);
   const dietPhase = analyseDietPhase(weight, maintenance);
   const body = analyseBody(state.bodyEntries, state.weights, state.settings);
-  const goals = analyseGoals(weight, maintenance, state.goals);
+  const goals = analyseGoals(weight, maintenance, state.goals, body);
   const insight = buildInsight(weight, maintenance, body, goals);
   return { weight, maintenance, dietPhase, body, goals, insight };
 }
@@ -1040,14 +1042,12 @@ function renderActiveCharts() {
   if (activeView === "overview") {
     drawWeightChart(document.querySelector("#overview-weight-chart"), weight, {
       compact: true,
-      targetWeight: state.goals.targetWeight,
       settings: state.settings
     });
   }
 
   if (activeView === "trends") {
     drawWeightChart(document.querySelector("#trend-weight-chart"), weight, {
-      targetWeight: state.goals.targetWeight,
       settings: state.settings
     });
     drawMaintenanceChart(document.querySelector("#maintenance-chart"), maintenance, {
@@ -1056,7 +1056,7 @@ function renderActiveCharts() {
   }
 
   if (activeView === "body") {
-    drawBodyCompositionChart(document.querySelector("#body-composition-chart"), body);
+    drawBodyCompositionChart(document.querySelector("#body-composition-chart"), body, { targetBodyFat: state.goals.targetBodyFat });
     drawPhysiqueMap(document.querySelector("#physique-map-chart"), body, state.settings);
   }
 }

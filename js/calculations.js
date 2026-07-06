@@ -592,6 +592,25 @@ export function ffmiCategory(ffmi, referenceSex) {
   return labels[index === -1 ? labels.length - 1 : index];
 }
 
+function buildBodyForecast(series, metric, predictionDays, limitValue = value => value) {
+  const points = series
+    .filter(point => point.date && Number.isFinite(Number(point[metric])))
+    .map(point => ({ date: point.date, value: Number(point[metric]) }));
+  const regression = linearRegression(points);
+  const latestDate = points.at(-1)?.date ?? null;
+  if (!regression || !latestDate) return { regression: null, points: [] };
+
+  const horizon = Math.max(1, Math.round(Number(predictionDays) || 91));
+  const projectedDate = addDays(latestDate, horizon);
+  const forecast = [{ date: latestDate, value: limitValue(regression.predict(latestDate)) }];
+  for (let days = 7; days < horizon; days += 7) {
+    const date = addDays(latestDate, days);
+    forecast.push({ date, value: limitValue(regression.predict(date)) });
+  }
+  forecast.push({ date: projectedDate, value: limitValue(regression.predict(projectedDate)) });
+  return { regression, points: forecast };
+}
+
 export function analyseBody(bodyEntries, weights, settings) {
   const entries = bodyEntries
     .filter(entry => entry.date && Number.isFinite(Number(entry.bodyFat)) && Number.isFinite(Number(entry.weight)))
@@ -616,6 +635,13 @@ export function analyseBody(bodyEntries, weights, settings) {
     };
   });
 
+  const predictionDays = Math.max(1, Math.round(
+    Number(settings.predictionDays) || (Number(settings.predictionMonths) || 3) * 30.4375
+  ));
+  const bodyFatForecast = buildBodyForecast(series, "bodyFat", predictionDays, value => clamp(value, 0, 70));
+  const leanMassForecast = buildBodyForecast(series, "leanMass", predictionDays, value => Math.max(0, value));
+  const fatMassForecast = buildBodyForecast(series, "fatMass", predictionDays, value => Math.max(0, value));
+
   const latestCalculated = series.at(-1) ?? null;
   const latestDailyWeight = chronologicalWeights(weights).at(-1)?.weight ?? null;
   const currentBmi = latestCalculated?.bmi
@@ -627,57 +653,74 @@ export function analyseBody(bodyEntries, weights, settings) {
     currentBmi,
     bmiCategory: bmiCategory(currentBmi),
     bodyFatCategory: bodyFatCategory(latestCalculated?.bodyFat, settings.referenceSex),
-    ffmiCategory: ffmiCategory(latestCalculated?.normalizedFfmi, settings.referenceSex)
+    ffmiCategory: ffmiCategory(latestCalculated?.normalizedFfmi, settings.referenceSex),
+    forecast: {
+      bodyFat: bodyFatForecast.points,
+      leanMass: leanMassForecast.points,
+      fatMass: fatMassForecast.points,
+      projectedDate: latest?.date ? addDays(latest.date, predictionDays) : null,
+      regressions: {
+        bodyFat: bodyFatForecast.regression,
+        leanMass: leanMassForecast.regression,
+        fatMass: fatMassForecast.regression
+      }
+    },
+    bodyFatWeeklyRate: bodyFatForecast.regression ? bodyFatForecast.regression.slope * 7 : null,
+    leanMassWeeklyRate: leanMassForecast.regression ? leanMassForecast.regression.slope * 7 : null,
+    fatMassWeeklyRate: fatMassForecast.regression ? fatMassForecast.regression.slope * 7 : null
   };
 }
 
-export function analyseGoals(weightAnalysis, maintenanceAnalysis, goals) {
-  const targetWeight = Number(goals.targetWeight);
-  const currentWeight = weightAnalysis.current;
-  const initialWeight = weightAnalysis.raw[0]?.weight ?? null;
-  const slope = weightAnalysis.regression?.slope ?? null;
-  const validTarget = Number.isFinite(targetWeight) && targetWeight > 0;
+export function analyseGoals(weightAnalysis, maintenanceAnalysis, goals, bodyAnalysis = null) {
+  const targetBodyFat = Number(goals.targetBodyFat);
+  const currentBodyFat = bodyAnalysis?.latest?.bodyFat ?? null;
+  const initialBodyFat = bodyAnalysis?.entries?.[0]?.bodyFat ?? null;
+  const slope = bodyAnalysis?.forecast?.regressions?.bodyFat?.slope ?? null;
+  const latestDate = bodyAnalysis?.latest?.date ?? weightAnalysis.latestRaw?.date ?? null;
+  const validTarget = Number.isFinite(targetBodyFat) && targetBodyFat >= 2 && targetBodyFat <= 70;
 
-  if (!validTarget || currentWeight == null) {
+  const maintenance = maintenanceAnalysis.current?.estimate;
+  const deficit = Number(goals.dailyDeficit) || 0;
+  const suggestedIntake = Number.isFinite(maintenance) ? maintenance - deficit : null;
+
+  if (!validTarget || currentBodyFat == null) {
     return {
-      targetWeight: null,
+      targetBodyFat: validTarget ? targetBodyFat : null,
       progress: null,
       difference: null,
       etaDays: null,
       etaDate: null,
-      suggestedIntake: null
+      suggestedIntake,
+      weeklyRate: bodyAnalysis?.bodyFatWeeklyRate ?? null
     };
   }
 
-  const difference = targetWeight - currentWeight;
+  const difference = targetBodyFat - currentBodyFat;
   let progress = null;
 
-  if (initialWeight != null && Math.abs(targetWeight - initialWeight) > 0.01) {
-    progress = targetWeight < initialWeight
-      ? (initialWeight - currentWeight) / (initialWeight - targetWeight)
-      : (currentWeight - initialWeight) / (targetWeight - initialWeight);
+  if (initialBodyFat != null && Math.abs(targetBodyFat - initialBodyFat) > 0.01) {
+    progress = targetBodyFat < initialBodyFat
+      ? (initialBodyFat - currentBodyFat) / (initialBodyFat - targetBodyFat)
+      : (currentBodyFat - initialBodyFat) / (targetBodyFat - initialBodyFat);
     progress = clamp(progress, 0, 1);
   }
 
   let etaDays = null;
   let etaDate = null;
 
-  if (slope != null && Math.abs(slope) > 0.001 && Math.sign(difference) === Math.sign(slope)) {
+  if (slope != null && Math.abs(slope) > 0.003 && Math.sign(difference) === Math.sign(slope)) {
     etaDays = Math.max(0, difference / slope);
-    if (etaDays <= 3650) etaDate = addDays(weightAnalysis.latestRaw.date, Math.round(etaDays));
+    if (latestDate && etaDays <= 3650) etaDate = addDays(latestDate, Math.round(etaDays));
   }
 
-  const maintenance = maintenanceAnalysis.current?.estimate;
-  const deficit = Number(goals.dailyDeficit) || 0;
-  const suggestedIntake = Number.isFinite(maintenance) ? maintenance - deficit : null;
-
   return {
-    targetWeight,
+    targetBodyFat,
     progress,
     difference,
     etaDays,
     etaDate,
-    suggestedIntake
+    suggestedIntake,
+    weeklyRate: bodyAnalysis?.bodyFatWeeklyRate ?? null
   };
 }
 
@@ -708,10 +751,10 @@ export function buildInsight(weightAnalysis, maintenanceAnalysis, bodyAnalysis, 
     };
   }
 
-  if (goalsAnalysis.targetWeight != null) {
+  if (goalsAnalysis.targetBodyFat != null) {
     return {
-      title: "Goal is active",
-      text: "Your target is saved. Add calorie and body-composition entries to connect weight change with intake and lean-mass development.",
+      title: "Body-fat goal is active",
+      text: "Your body-fat target is saved. Add repeated composition entries under similar conditions to make the projection more useful.",
       confidence: "Developing"
     };
   }

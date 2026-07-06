@@ -236,6 +236,8 @@ select:disabled {
 }
 
 #trend-window-badge {
+  min-width: 218px;
+  justify-content: center;
   white-space: nowrap;
 }
 
@@ -405,11 +407,11 @@ select:disabled {
 }
 
 .chart-wrap.tall {
-  min-height: 370px;
+  min-height: 330px;
 }
 
 .overview-chart-wrap {
-  min-height: 315px;
+  min-height: 282px;
 }
 
 .physique-map-wrap {
@@ -1290,6 +1292,7 @@ select:disabled {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+  min-width: min(100%, 290px);
 }
 
 .trend-phase-copy {
