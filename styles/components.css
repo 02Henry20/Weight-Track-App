@@ -236,11 +236,13 @@ select:disabled {
 }
 
 #trend-window-badge {
-  min-width: 164px;
+  width: fit-content;
+  min-width: 0;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
+  padding: 6px 9px;
   line-height: 1.18;
   white-space: nowrap;
 }
@@ -410,15 +412,15 @@ select:disabled {
 }
 
 .chart-wrap.tall {
-  min-height: 300px;
-}
-
-.trend-weight-wrap {
   min-height: 276px;
 }
 
+.trend-weight-wrap {
+  min-height: 236px;
+}
+
 .maintenance-wrap {
-  min-height: 258px;
+  min-height: 238px;
 }
 
 .overview-chart-wrap {
@@ -1303,7 +1305,7 @@ select:disabled {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
-  min-width: min(100%, 290px);
+  min-width: 0;
 }
 
 .trend-phase-copy {
@@ -1529,7 +1531,7 @@ select:disabled {
 .plot-info-button {
   position: absolute;
   top: 12px;
-  left: 12px;
+  right: 12px;
   z-index: 5;
   display: grid;
   width: 34px;
@@ -1654,7 +1656,7 @@ select:disabled {
 
   .plot-info-button {
     top: 10px;
-    left: 10px;
+    right: 10px;
     width: 32px;
     height: 32px;
   }
@@ -1809,7 +1811,7 @@ select:disabled {
 .plot-info-button {
   position: absolute;
   top: 12px;
-  left: 12px;
+  right: 12px;
   z-index: 5;
   display: grid;
   width: 34px;
@@ -1918,7 +1920,7 @@ select:disabled {
 
   .plot-info-button {
     top: 10px;
-    left: 10px;
+    right: 10px;
     width: 32px;
     height: 32px;
   }

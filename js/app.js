@@ -53,7 +53,7 @@ import {
   redrawOnResize
 } from "./charts.js";
 
-const APP_VERSION = "2.4.7";
+const APP_VERSION = "2.4.8";
 
 const VIEW_LABELS = {
   overview: ["TODAY'S SIGNAL", "Overview"],

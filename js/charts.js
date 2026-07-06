@@ -232,9 +232,25 @@ function showTooltipForPoint(canvas, event, point) {
   const value = Number(point.point.value);
   const label = point.point.label ?? formatShortDate(point.point.date);
   tooltip.innerHTML = `<strong style="color:${point.color}">${point.series}</strong><span>${label} · ${canvas.__valueFormatter(value, point)}</span>`;
-  tooltip.style.left = `${event.clientX}px`;
-  tooltip.style.top = `${event.clientY}px`;
   tooltip.hidden = false;
+
+  const margin = 10;
+  const width = tooltip.offsetWidth || 150;
+  const height = tooltip.offsetHeight || 44;
+  const wouldOverflowRight = event.clientX + 12 + width > window.innerWidth - margin;
+  const top = Math.min(
+    window.innerHeight - margin - height / 2,
+    Math.max(margin + height / 2, event.clientY)
+  );
+
+  if (wouldOverflowRight) {
+    tooltip.style.left = `${Math.max(margin + width, event.clientX - 12)}px`;
+    tooltip.style.transform = "translate(-100%, -50%)";
+  } else {
+    tooltip.style.left = `${Math.min(window.innerWidth - margin - width, event.clientX + 12)}px`;
+    tooltip.style.transform = "translate(0, -50%)";
+  }
+  tooltip.style.top = `${top}px`;
 }
 
 function hideTooltip() {

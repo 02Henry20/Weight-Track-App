@@ -270,17 +270,18 @@
   }
 
   .trend-header-meta {
-    width: 100%;
+    width: fit-content;
     min-width: 0;
     justify-content: flex-start;
   }
 
   #trend-window-badge {
-    min-width: 164px;
+    width: fit-content;
+    min-width: 0;
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    padding: 6px 10px;
+    padding: 6px 9px;
     line-height: 1.18;
     white-space: nowrap;
   }
@@ -338,12 +339,15 @@
 
   .chart-wrap.tall,
   .overview-chart-wrap {
-    min-height: 248px;
+    min-height: 230px;
   }
 
-  .trend-weight-wrap,
+  .trend-weight-wrap {
+    min-height: 205px;
+  }
+
   .maintenance-wrap {
-    min-height: 238px;
+    min-height: 225px;
   }
 
   .physique-map-wrap {
