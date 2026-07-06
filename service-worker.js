@@ -1,4 +1,4 @@
-const APP_CACHE = "calstat-app-v17";
+const APP_CACHE = "calstat-app-v18";
 const FIREBASE_CACHE = "calstat-firebase-modules-v1";
 const FIREBASE_VERSION = "12.15.0";
 

@@ -53,7 +53,7 @@ import {
   redrawOnResize
 } from "./charts.js";
 
-const APP_VERSION = "2.4.12";
+const APP_VERSION = "2.4.13";
 
 const VIEW_LABELS = {
   overview: ["TODAY'S SIGNAL", "Overview"],
@@ -98,11 +98,9 @@ let latestAnalyses = null;
 let renderScheduled = false;
 let localSessionOpen = false;
 let nutripilotWeeklyCandidates = [];
-let weightReminderTimer = null;
 let settingsAutosaveTimer = null;
 let settingsSaveSequence = 0;
 const SETTINGS_AUTOSAVE_DELAY_MS = 650;
-const WEIGHT_REMINDER_LAST_SHOWN_KEY = "calstat-weight-reminder-last-shown-v1";
 
 function setFormMessage(element, text, error = false) {
   element.textContent = text;
@@ -150,97 +148,6 @@ function showToast(title, copy = "", type = "success") {
 function isTodayWeightLogged() {
   const today = todayString();
   return state.weights.some(entry => entry.date === today);
-}
-
-function normalizeReminderTime(value) {
-  return typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value) ? value : "08:00";
-}
-
-function weightReminderIsEnabled(settings = state.settings) {
-  return settings.weightReminderEnabled === "on" || settings.weightReminderEnabled === true;
-}
-
-function reminderLastShownKey() {
-  return `${WEIGHT_REMINDER_LAST_SHOWN_KEY}:${state.user?.uid ?? "local"}`;
-}
-
-function reminderDateForToday(timeString) {
-  const [hours, minutes] = normalizeReminderTime(timeString).split(":").map(Number);
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
-  return date;
-}
-
-async function ensureWeightReminderPermission() {
-  if (!("Notification" in window)) return "unsupported";
-  if (Notification.permission !== "default") return Notification.permission;
-  try {
-    return await Notification.requestPermission();
-  } catch {
-    return "denied";
-  }
-}
-
-async function showWeightReminderNotification() {
-  if (!weightReminderIsEnabled() || isTodayWeightLogged()) return;
-  const today = todayString();
-  try {
-    if (localStorage.getItem(reminderLastShownKey()) === today) return;
-    localStorage.setItem(reminderLastShownKey(), today);
-  } catch {
-    // Non-critical: reminders can still show without localStorage bookkeeping.
-  }
-
-  showToast("Log today's weight", "A daily weight entry is still missing.");
-  if (!("Notification" in window) || Notification.permission !== "granted") return;
-
-  const options = {
-    body: "Open CalStat and log today's weight.",
-    tag: "calstat-weight-reminder",
-    renotify: false,
-    icon: "./icons/icon-192.png",
-    badge: "./icons/icon-192.png",
-    data: { url: "./" }
-  };
-
-  try {
-    if ("serviceWorker" in navigator) {
-      const registration = await navigator.serviceWorker.ready;
-      await registration.showNotification("Log today's weight", options);
-    } else {
-      new Notification("Log today's weight", options);
-    }
-  } catch {
-    // Browser notification support varies by platform. The in-app toast above is the fallback.
-  }
-}
-
-function scheduleWeightReminder(settings = state.settings) {
-  if (weightReminderTimer) {
-    window.clearTimeout(weightReminderTimer);
-    weightReminderTimer = null;
-  }
-  if (!weightReminderIsEnabled(settings)) return;
-
-  const timeString = normalizeReminderTime(settings.weightReminderTime);
-  const now = new Date();
-  const todayReminder = reminderDateForToday(timeString);
-  let nextReminder = new Date(todayReminder);
-
-  if (now >= todayReminder) {
-    const lastShown = (() => {
-      try { return localStorage.getItem(reminderLastShownKey()); } catch { return null; }
-    })();
-    if (!isTodayWeightLogged() && lastShown !== todayString()) {
-      void showWeightReminderNotification();
-    }
-    nextReminder.setDate(nextReminder.getDate() + 1);
-  }
-
-  const delay = Math.max(1_000, nextReminder.getTime() - Date.now());
-  weightReminderTimer = window.setTimeout(() => {
-    void showWeightReminderNotification().finally(() => scheduleWeightReminder(state.settings));
-  }, delay);
 }
 
 function queueWrite(promise, title, onlineCopy = "Saved on this device and synchronizing with Firebase.") {
@@ -693,7 +600,6 @@ async function submitWeight(event) {
   }
 
   queueWrite(saveWeight({ date, weight }), "Weight saved");
-  scheduleWeightReminder(state.settings);
   closeModal();
 }
 
@@ -784,9 +690,7 @@ function settingsFromForm() {
     chartWeightMin: document.querySelector("#setting-chart-weight-min").value,
     chartWeightMax: document.querySelector("#setting-chart-weight-max").value,
     energyDensityKcalPerKg: document.querySelector("#setting-energy-density").value,
-    trendConfidenceView: document.querySelector("#setting-trend-confidence").value,
-    weightReminderEnabled: document.querySelector("#setting-weight-reminder-enabled").value,
-    weightReminderTime: normalizeReminderTime(document.querySelector("#setting-weight-reminder-time").value)
+    trendConfidenceView: document.querySelector("#setting-trend-confidence").value
   };
 }
 
@@ -818,10 +722,6 @@ function validateSettings(settings, message) {
     setFormMessage(message, "Fixed weight chart range needs a valid minimum below maximum.", true);
     return false;
   }
-  if (settings.weightReminderEnabled === "on" && !/^([01]\d|2[0-3]):[0-5]\d$/.test(settings.weightReminderTime)) {
-    setFormMessage(message, "Reminder time must be a valid 24-hour time.", true);
-    return false;
-  }
   return true;
 }
 
@@ -831,8 +731,6 @@ function saveSettingsFromForm({ autosave = false } = {}) {
   if (!validateSettings(settings, message)) return false;
 
   const saveSequence = ++settingsSaveSequence;
-  if (settings.weightReminderEnabled === "on") void ensureWeightReminderPermission();
-  scheduleWeightReminder(settings);
   setFormMessage(message, autosave ? "Saving settings automatically…" : "Saving settings…");
 
   saveSettings(settings)
@@ -1234,9 +1132,6 @@ function renderSettings() {
     document.querySelector("#setting-chart-weight-max").value = state.settings.chartWeightMax ?? "";
     document.querySelector("#setting-energy-density").value = String(state.settings.energyDensityKcalPerKg);
     document.querySelector("#setting-trend-confidence").value = state.settings.trendConfidenceView === "off" ? "off" : "on";
-    document.querySelector("#setting-weight-reminder-enabled").value = weightReminderIsEnabled(state.settings) ? "on" : "off";
-    document.querySelector("#setting-weight-reminder-time").value = normalizeReminderTime(state.settings.weightReminderTime);
-    document.querySelector("#setting-weight-reminder-time").disabled = !weightReminderIsEnabled(state.settings);
   }
   document.querySelector("#chart-fixed-range-fields")?.classList.toggle("hidden", state.settings.chartScaleMode !== "fixed");
 
@@ -1379,7 +1274,6 @@ function scheduleRender() {
     renderGoals(latestAnalyses);
     renderSettings();
     renderActiveCharts();
-    scheduleWeightReminder(state.settings);
   });
 }
 
@@ -1527,9 +1421,6 @@ function bindEvents() {
   });
   document.querySelector("#setting-chart-scale-mode").addEventListener("change", event => {
     document.querySelector("#chart-fixed-range-fields")?.classList.toggle("hidden", event.target.value !== "fixed");
-  });
-  document.querySelector("#setting-weight-reminder-enabled")?.addEventListener("change", event => {
-    document.querySelector("#setting-weight-reminder-time").disabled = event.target.value !== "on";
   });
   document.querySelector("#settings-form")?.addEventListener("input", event => {
     if (event.target.matches("input, select")) scheduleSettingsAutosave();
