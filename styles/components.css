@@ -1946,7 +1946,7 @@ select:disabled {
 
 /* Goal composition estimate additions */
 .goal-composition-wrap {
-  min-height: 286px;
+  min-height: 274px;
 }
 
 .goal-composition-card .plot-note {
