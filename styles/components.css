@@ -242,7 +242,7 @@ select:disabled {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 6px 9px;
+  padding: 6px 11px;
   line-height: 1.18;
   white-space: nowrap;
 }
@@ -412,11 +412,11 @@ select:disabled {
 }
 
 .chart-wrap.tall {
-  min-height: 276px;
+  min-height: 260px;
 }
 
 .trend-weight-wrap {
-  min-height: 236px;
+  min-height: 220px;
 }
 
 .maintenance-wrap {
@@ -1319,6 +1319,7 @@ select:disabled {
 .diet-phase-badge {
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   min-height: 30px;
   padding: 6px 11px;
   border: 1px solid var(--line);
@@ -1945,7 +1946,7 @@ select:disabled {
 
 /* Goal composition estimate additions */
 .goal-composition-wrap {
-  min-height: 310px;
+  min-height: 286px;
 }
 
 .goal-composition-card .plot-note {
@@ -2051,4 +2052,12 @@ select:disabled {
   color: var(--muted);
   text-align: center;
   line-height: 1.5;
+}
+
+.physique-map-card { position: relative; }
+
+.physique-map-card > .plot-info-button {
+  top: 16px;
+  right: 16px;
+  z-index: 4;
 }

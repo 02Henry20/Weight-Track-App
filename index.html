@@ -289,8 +289,8 @@
               <div class="panel-heading">
                 <div><p class="eyebrow">PHYSIQUE MAP</p><h3>Body fat vs <span id="map-metric-name">FFMI</span></h3></div>
               </div>
+              <button class="plot-info-button" data-open-modal="physique-info" type="button" aria-label="Show physique map category ranges">i</button>
               <div class="chart-wrap physique-map-wrap">
-                <button class="plot-info-button" data-open-modal="physique-info" type="button" aria-label="Show physique map category ranges">i</button>
                 <canvas id="physique-map-chart"></canvas>
                 <div class="chart-empty" data-empty-for="physique-map-chart">Add body-fat data and set your height.</div>
               </div>
@@ -327,11 +327,6 @@
             <article class="chart-card glass-panel goal-composition-card">
               <div class="panel-heading">
                 <div><p class="eyebrow">COMPOSITION ESTIMATE</p><h3>Weight vs body fat</h3><p class="plot-note">Uses your recent body-composition baseline and a conservative fat/lean change model.</p></div>
-                <div class="legend-row">
-                  <span><i class="legend-dot body-fat"></i>Estimated BF %</span>
-                  <span><i class="legend-dot raw"></i>Current</span>
-                  <span><i class="legend-dot forecast"></i>Target kg</span>
-                </div>
               </div>
               <div class="chart-wrap goal-composition-wrap"><canvas id="goal-composition-chart"></canvas><div class="chart-empty" data-empty-for="goal-composition-chart">Add at least one body-composition entry to estimate BF by body weight.</div></div>
             </article>

@@ -281,7 +281,7 @@
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    padding: 6px 9px;
+    padding: 6px 11px;
     line-height: 1.18;
     white-space: nowrap;
   }
@@ -339,11 +339,11 @@
 
   .chart-wrap.tall,
   .overview-chart-wrap {
-    min-height: 230px;
+    min-height: 220px;
   }
 
   .trend-weight-wrap {
-    min-height: 205px;
+    min-height: 188px;
   }
 
   .maintenance-wrap {
@@ -514,7 +514,16 @@
 }
 
 @media (max-width: 680px) {
+  .goal-forecast-card #goal-forecast-title {
+    text-align: center;
+  }
+
+  .physique-map-card > .plot-info-button {
+    top: 14px;
+    right: 14px;
+  }
+
   .goal-composition-wrap {
-    min-height: 270px;
+    min-height: 238px;
   }
 }

@@ -642,7 +642,7 @@ export function drawGoalCompositionProjectionChart(canvas, bodyAnalysis, goals =
   }
 
   const { context, width, height } = prepareCanvas(canvas);
-  const area = chartArea(width, height, { left: 52, right: 22, bottom: 38, top: 22 });
+  const area = chartArea(width, height, { left: 52, right: 22, bottom: 50, top: 34 });
   const yValues = [
     ...points.map(point => point.bodyFat),
     latest.bodyFat,
@@ -661,9 +661,9 @@ export function drawGoalCompositionProjectionChart(canvas, bodyAnalysis, goals =
   context.font = "11px system-ui, sans-serif";
   context.fillStyle = COLORS.text;
   context.textAlign = "left";
-  context.fillText("Body fat %", area.left, area.top - 9);
+  context.fillText("Body fat %", area.left, area.top - 13);
   context.textAlign = "right";
-  context.fillText("Body weight", area.right, area.bottom + 25);
+  context.fillText("Body weight", area.right, area.bottom + 36);
   context.restore();
 
   const hitPoints = [];
@@ -702,7 +702,9 @@ export function drawGoalCompositionProjectionChart(canvas, bodyAnalysis, goals =
     context.fillStyle = COLORS.green;
     context.font = "11px system-ui, sans-serif";
     context.textAlign = "center";
-    context.fillText(`Target ${round(targetWeight, 1)} kg`, x, area.top + 12);
+    context.textBaseline = "bottom";
+    const targetLabelX = clamp(x, area.left + 42, area.right - 42);
+    context.fillText(`Target ${round(targetWeight, 1)} kg`, targetLabelX, area.top - 7);
     context.restore();
 
     hitPoints.push({
@@ -729,8 +731,11 @@ export function drawGoalCompositionProjectionChart(canvas, bodyAnalysis, goals =
   context.stroke();
   context.fillStyle = COLORS.blue;
   context.font = "11px system-ui, sans-serif";
-  context.textAlign = "left";
-  context.fillText("Current", Math.min(currentX + 8, area.right - 46), Math.max(area.top + 12, currentY - 9));
+  context.textAlign = "center";
+  context.textBaseline = "bottom";
+  const currentLabelX = clamp(currentX, area.left + 24, area.right - 24);
+  const currentLabelY = Math.max(area.top + 13, currentY - 10);
+  context.fillText("Current", currentLabelX, currentLabelY);
   context.restore();
 
   hitPoints.push({
