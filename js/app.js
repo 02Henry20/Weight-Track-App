@@ -53,7 +53,7 @@ import {
   redrawOnResize
 } from "./charts.js";
 
-const APP_VERSION = "2.4.11";
+const APP_VERSION = "2.4.12";
 
 const VIEW_LABELS = {
   overview: ["TODAY'S SIGNAL", "Overview"],
@@ -99,6 +99,9 @@ let renderScheduled = false;
 let localSessionOpen = false;
 let nutripilotWeeklyCandidates = [];
 let weightReminderTimer = null;
+let settingsAutosaveTimer = null;
+let settingsSaveSequence = 0;
+const SETTINGS_AUTOSAVE_DELAY_MS = 650;
 const WEIGHT_REMINDER_LAST_SHOWN_KEY = "calstat-weight-reminder-last-shown-v1";
 
 function setFormMessage(element, text, error = false) {
@@ -764,9 +767,8 @@ function submitGoals(event) {
   setFormMessage(message, navigator.onLine ? "Goals saved and synchronizing with Firebase." : "Goals saved on this device.");
 }
 
-function submitSettings(event) {
-  event.preventDefault();
-  const settings = {
+function settingsFromForm() {
+  return {
     theme: document.querySelector("#setting-theme").value,
     colorTheme: document.querySelector("#setting-color-theme").value,
     animation: document.querySelector("#setting-animation").value,
@@ -786,11 +788,12 @@ function submitSettings(event) {
     weightReminderEnabled: document.querySelector("#setting-weight-reminder-enabled").value,
     weightReminderTime: normalizeReminderTime(document.querySelector("#setting-weight-reminder-time").value)
   };
-  const message = document.querySelector("#settings-message");
+}
 
+function validateSettings(settings, message) {
   if (Number(settings.heightCm) < 120 || Number(settings.heightCm) > 230) {
     setFormMessage(message, "Height must be between 120 and 230 cm.", true);
-    return;
+    return false;
   }
   const integerDayFields = [
     [settings.smoothingDays, 1, 90, "Weight smoothing"],
@@ -802,28 +805,65 @@ function submitSettings(event) {
     const numericValue = Number(value);
     if (!Number.isInteger(numericValue) || numericValue < minimum || numericValue > maximum) {
       setFormMessage(message, `${label} must be a whole number between ${minimum} and ${maximum} days.`, true);
-      return;
+      return false;
     }
   }
   if (settings.chartStartDate && settings.chartStartDate > todayString()) {
     setFormMessage(message, "Chart history cannot start in the future.", true);
-    return;
+    return false;
   }
   const fixedMin = Number(settings.chartWeightMin);
   const fixedMax = Number(settings.chartWeightMax);
   if (settings.chartScaleMode === "fixed" && (!Number.isFinite(fixedMin) || !Number.isFinite(fixedMax) || fixedMin >= fixedMax)) {
     setFormMessage(message, "Fixed weight chart range needs a valid minimum below maximum.", true);
-    return;
+    return false;
   }
   if (settings.weightReminderEnabled === "on" && !/^([01]\d|2[0-3]):[0-5]\d$/.test(settings.weightReminderTime)) {
     setFormMessage(message, "Reminder time must be a valid 24-hour time.", true);
-    return;
+    return false;
   }
+  return true;
+}
 
+function saveSettingsFromForm({ autosave = false } = {}) {
+  const message = document.querySelector("#settings-message");
+  const settings = settingsFromForm();
+  if (!validateSettings(settings, message)) return false;
+
+  const saveSequence = ++settingsSaveSequence;
   if (settings.weightReminderEnabled === "on") void ensureWeightReminderPermission();
   scheduleWeightReminder(settings);
-  queueWrite(saveSettings(settings), "Settings saved");
-  setFormMessage(message, navigator.onLine ? "Settings saved and synchronizing with Firebase." : "Settings saved on this device.");
+  setFormMessage(message, autosave ? "Saving settings automatically…" : "Saving settings…");
+
+  saveSettings(settings)
+    .then(() => {
+      if (saveSequence === settingsSaveSequence) {
+        setFormMessage(message, navigator.onLine ? "Settings saved automatically and synchronizing with Firebase." : "Settings saved automatically on this device.");
+      }
+    })
+    .catch(error => {
+      if (saveSequence === settingsSaveSequence) setFormMessage(message, firebaseErrorMessage(error), true);
+      showToast("Settings save failed", firebaseErrorMessage(error), "error");
+    });
+  return true;
+}
+
+function scheduleSettingsAutosave(delay = SETTINGS_AUTOSAVE_DELAY_MS) {
+  if (settingsAutosaveTimer) window.clearTimeout(settingsAutosaveTimer);
+  setFormMessage(document.querySelector("#settings-message"), "Settings will save automatically.");
+  settingsAutosaveTimer = window.setTimeout(() => {
+    settingsAutosaveTimer = null;
+    saveSettingsFromForm({ autosave: true });
+  }, Math.max(0, delay));
+}
+
+function submitSettings(event) {
+  event.preventDefault();
+  if (settingsAutosaveTimer) {
+    window.clearTimeout(settingsAutosaveTimer);
+    settingsAutosaveTimer = null;
+  }
+  saveSettingsFromForm({ autosave: true });
 }
 
 function createHistoryRow({ title, subtitle, value, pending, collectionName, id }) {
@@ -1226,8 +1266,9 @@ function useBestMaintenanceWindow() {
   document.querySelector("#setting-maintenance-window").value = String(best.windowDays);
   setText(
     "#settings-message",
-    `Maintenance window set to ${best.windowDays} days (${best.confidenceScore}% quality, ${Math.round(best.calorieCoverage * 100)}% calorie coverage). Save settings to apply.`
+    `Maintenance window set to ${best.windowDays} days (${best.confidenceScore}% quality, ${Math.round(best.calorieCoverage * 100)}% calorie coverage). Saving automatically.`
   );
+  scheduleSettingsAutosave(0);
 }
 
 function useLowestVolatilityTrendWindow() {
@@ -1240,8 +1281,9 @@ function useLowestVolatilityTrendWindow() {
   document.querySelector("#setting-trend-window").value = String(best.windowDays);
   setText(
     "#settings-message",
-    `Trend window set to ${best.windowDays} days (${best.dataSufficiencyScore}% data sufficiency, ${best.volatilityScore}% volatility). Save settings to apply.`
+    `Trend window set to ${best.windowDays} days (${best.dataSufficiencyScore}% data sufficiency, ${best.volatilityScore}% volatility). Saving automatically.`
   );
+  scheduleSettingsAutosave(0);
 }
 
 function bindSettingHelpDismissal() {
@@ -1488,6 +1530,12 @@ function bindEvents() {
   });
   document.querySelector("#setting-weight-reminder-enabled")?.addEventListener("change", event => {
     document.querySelector("#setting-weight-reminder-time").disabled = event.target.value !== "on";
+  });
+  document.querySelector("#settings-form")?.addEventListener("input", event => {
+    if (event.target.matches("input, select")) scheduleSettingsAutosave();
+  });
+  document.querySelector("#settings-form")?.addEventListener("change", event => {
+    if (event.target.matches("input, select")) scheduleSettingsAutosave(250);
   });
   bindTouchSafeAction("#optimize-maintenance-window", useBestMaintenanceWindow);
   bindTouchSafeAction("#optimize-trend-window", useLowestVolatilityTrendWindow);
