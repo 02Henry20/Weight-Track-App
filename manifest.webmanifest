@@ -93,12 +93,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
-    },
-    {
-      "src": "./icons/transparent-symbol-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "monochrome"
     }
   ]
 }
