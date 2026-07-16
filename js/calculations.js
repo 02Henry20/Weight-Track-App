@@ -599,6 +599,22 @@ function bodyRegression(series, metric) {
   return linearRegression(points);
 }
 
+function estimateCompositionAtWeightFromBaseline(baseline, weightKg) {
+  if (!baseline || !Number.isFinite(Number(weightKg))) return null;
+  const weight = Number(weightKg);
+  const delta = weight - Number(baseline.weight);
+  const fatChangeRatio = delta < 0 ? 0.85 : 0.4;
+  const fatMass = clamp(Number(baseline.fatMass) + delta * fatChangeRatio, weight * 0.03, weight * 0.7);
+  const leanMass = Math.max(0, Number(baseline.leanMass) + delta * (1 - fatChangeRatio));
+  return {
+    ...baseline,
+    weight,
+    fatMass,
+    leanMass,
+    bodyFat: fatMass / weight * 100
+  };
+}
+
 export function analyseBody(bodyEntries, weights, settings) {
   const entries = bodyEntries
     .filter(entry => entry.date && Number.isFinite(Number(entry.bodyFat)) && Number.isFinite(Number(entry.weight)))
@@ -628,13 +644,26 @@ export function analyseBody(bodyEntries, weights, settings) {
   const fatMassRegression = bodyRegression(series, "fatMass");
 
   const latestCalculated = series.at(-1) ?? null;
-  const latestDailyWeight = chronologicalWeights(weights).at(-1)?.weight ?? null;
-  const currentBmi = latestCalculated?.bmi
-    ?? (heightM > 0 && latestDailyWeight != null ? latestDailyWeight / heightM ** 2 : null);
+  const latestDailyWeightEntry = chronologicalWeights(weights).at(-1) ?? null;
+  const latestDailyWeight = latestDailyWeightEntry?.weight ?? null;
+  const currentWeight = latestDailyWeight ?? latestCalculated?.weight ?? null;
+  const currentComposition = latestCalculated && Number.isFinite(currentWeight)
+    ? {
+        ...estimateCompositionAtWeightFromBaseline(latestCalculated, currentWeight),
+        date: latestDailyWeightEntry?.date ?? latestCalculated.date,
+        baselineDate: latestCalculated.date,
+        baselineWeight: latestCalculated.weight
+      }
+    : null;
+  const currentBmi = heightM > 0 && currentWeight != null
+    ? currentWeight / heightM ** 2
+    : latestCalculated?.bmi ?? null;
 
   return {
     entries: series,
     latest: latestCalculated,
+    current: currentComposition,
+    latestScaleWeight: latestDailyWeight,
     currentBmi,
     bmiCategory: bmiCategory(currentBmi),
     bodyFatCategory: bodyFatCategory(latestCalculated?.bodyFat, settings.referenceSex),
@@ -653,14 +682,8 @@ export function analyseBody(bodyEntries, weights, settings) {
 function estimateBodyFatAtWeight(bodyAnalysis, weightKg) {
   const entries = bodyAnalysis?.entries ?? [];
   if (!entries.length || !Number.isFinite(Number(weightKg))) return null;
-  const recent = entries.slice(-Math.min(3, entries.length));
-  const baselineWeight = mean(recent.map(entry => entry.weight));
-  const baselineFatMass = mean(recent.map(entry => entry.fatMass));
-  if (!Number.isFinite(baselineWeight) || !Number.isFinite(baselineFatMass) || baselineWeight <= 0) return null;
-  const delta = Number(weightKg) - baselineWeight;
-  const fatChangeRatio = delta < 0 ? 0.85 : 0.4;
-  const estimatedFatMass = clamp(baselineFatMass + delta * fatChangeRatio, Number(weightKg) * 0.03, Number(weightKg) * 0.7);
-  return estimatedFatMass / Number(weightKg) * 100;
+  const baseline = bodyAnalysis?.current ?? entries.at(-1);
+  return estimateCompositionAtWeightFromBaseline(baseline, weightKg)?.bodyFat ?? null;
 }
 
 export function analyseGoals(weightAnalysis, maintenanceAnalysis, goals, bodyAnalysis = null) {

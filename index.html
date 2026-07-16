@@ -339,59 +339,71 @@
             <article class="settings-card glass-panel">
               <div class="panel-heading"><div><p class="eyebrow">PROFILE</p><h3>Body reference</h3></div></div>
               <form id="settings-form" class="settings-form">
-                <label class="field"><span>Appearance</span><select id="setting-theme"><option value="dark">Dark mode</option><option value="light">Light mode</option></select></label>
-                <label class="field"><span>Color theme</span><select id="setting-color-theme"><option value="ocean">Ocean</option><option value="forest">Forest</option><option value="violet">Violet</option><option value="ember">Ember</option></select></label>
-                <label class="field"><span>Motion</span><select id="setting-animation"><option value="on">Animations on</option><option value="off">Animations off</option></select></label>
-                <label class="field"><span>Height (cm)</span><input id="setting-height" type="number" min="120" max="230" step="0.1"></label>
-                <label class="field"><span>Body-fat reference profile</span><select id="setting-reference-sex"><option value="male">Male reference</option><option value="female">Female reference</option></select></label>
-                <label class="field"><span>Physique map vertical metric</span><select id="setting-map-metric"><option value="ffmi">Normalized FFMI</option><option value="bmi">BMI</option></select></label>
-
-                <div class="settings-divider"></div>
-                <p class="settings-group-title">Averaging and models</p>
-
-                <div class="field setting-field">
-                  <div class="field-label-row"><label for="setting-smoothing">Weight smoothing period (days)</label><details class="setting-help"><summary aria-label="Explain weight smoothing">i</summary><p>Averages nearby weigh-ins to reduce daily water and digestion noise. Use 1 day for no smoothing.</p></details></div>
-                  <input id="setting-smoothing" type="number" min="1" max="90" step="1" inputmode="numeric">
-                </div>
-                <div class="field setting-field">
-                  <div class="field-label-row"><label for="setting-trend-window">Trend analysis window (days)</label><details class="setting-help"><summary aria-label="Explain trend window">i</summary><p>Controls how many recent days are used to estimate weight velocity and the current diet phase. Labels are Cut, Maintain, Bulk, Diet break and Deload. Deload is a low-confidence recovery-pattern guess because training load is not tracked.</p></details></div>
-                  <div class="field-action-row">
-                    <input id="setting-trend-window" type="number" min="7" max="730" step="1" inputmode="numeric">
-                    <button id="optimize-trend-window" class="secondary-button compact" type="button">Min volatility</button>
+                <details class="settings-dropdown" data-settings-dropdown open>
+                  <summary>Display and profile</summary>
+                  <div class="settings-dropdown-content">
+                    <label class="field"><span>Appearance</span><select id="setting-theme"><option value="dark">Dark mode</option><option value="light">Light mode</option></select></label>
+                    <label class="field"><span>Color theme</span><select id="setting-color-theme"><option value="ocean">Ocean</option><option value="forest">Forest</option><option value="violet">Violet</option><option value="ember">Ember</option></select></label>
+                    <label class="field"><span>Motion</span><select id="setting-animation"><option value="on">Animations on</option><option value="off">Animations off</option></select></label>
+                    <label class="field"><span>Height (cm)</span><input id="setting-height" type="number" min="120" max="230" step="0.1"></label>
+                    <label class="field"><span>Body-fat reference profile</span><select id="setting-reference-sex"><option value="male">Male reference</option><option value="female">Female reference</option></select></label>
+                    <label class="field"><span>Physique map vertical metric</span><select id="setting-map-metric"><option value="ffmi">Normalized FFMI</option><option value="bmi">BMI</option></select></label>
                   </div>
-                </div>
-                <div class="field setting-field">
-                  <div class="field-label-row"><label for="setting-trend-confidence">Analysis quality panel</label><details class="setting-help"><summary aria-label="Explain analysis quality panel">i</summary><p>Shows maintenance-model readiness, measurement sufficiency and weight volatility together beside the chart.</p></details></div>
-                  <select id="setting-trend-confidence"><option value="on">Show combined quality panel</option><option value="off">Hide combined quality panel</option></select>
-                </div>
-                <div class="field setting-field">
-                  <div class="field-label-row"><label for="setting-maintenance-window">Maintenance estimation window (days)</label><details class="setting-help"><summary aria-label="Explain maintenance window">i</summary><p>Maintenance uses average logged kcal/day minus the weight-change slope times the kcal/kg setting. Missing calorie days lower coverage, so a week with only weight can make the estimate poor. The button picks the window with the best blend of calorie coverage, weight count, confidence and uncertainty.</p></details></div>
-                  <div class="field-action-row">
-                    <input id="setting-maintenance-window" type="number" min="7" max="730" step="1" inputmode="numeric">
-                    <button id="optimize-maintenance-window" class="secondary-button compact" type="button">Best quality</button>
-                  </div>
-                </div>
-                <div class="field setting-field">
-                  <div class="field-label-row"><label for="setting-prediction-days">Prediction horizon (days)</label><details class="setting-help"><summary aria-label="Explain prediction horizon">i</summary><p>Sets how far the weight trend is projected into the future. Longer forecasts are less certain.</p></details></div>
-                  <input id="setting-prediction-days" type="number" min="7" max="3650" step="1" inputmode="numeric">
-                </div>
+                </details>
 
-                <div class="field setting-field">
-                  <div class="field-label-row"><label for="setting-chart-start-date">Chart history starts on</label><details class="setting-help"><summary aria-label="Explain chart history">i</summary><p>Only measurements on or after this date appear in weight charts. Leave it empty to show all history.</p></details></div>
-                  <input id="setting-chart-start-date" type="date">
-                </div>
-                <div class="field setting-field">
-                  <div class="field-label-row"><label for="setting-chart-scale-mode">Weight chart scale</label><details class="setting-help"><summary aria-label="Explain chart scale">i</summary><p>Auto follows your visible data. Fixed keeps the same vertical range for easier visual comparison.</p></details></div>
-                  <select id="setting-chart-scale-mode"><option value="auto">Auto range</option><option value="fixed">Set range</option></select>
-                </div>
-                <div id="chart-fixed-range-fields" class="settings-inline-grid hidden">
-                  <label class="field"><span>Min weight (kg)</span><input id="setting-chart-weight-min" type="number" min="20" max="500" step="0.1" placeholder="60.0"></label>
-                  <label class="field"><span>Max weight (kg)</span><input id="setting-chart-weight-max" type="number" min="20" max="500" step="0.1" placeholder="90.0"></label>
-                </div>
-                <div class="field setting-field">
-                  <div class="field-label-row"><label for="setting-energy-density">Energy conversion estimate (kcal/kg)</label><details class="setting-help"><summary aria-label="Explain energy conversion">i</summary><p>Approximate energy associated with one kilogram of weight change. It affects maintenance and goal calculations.</p></details></div>
-                  <input id="setting-energy-density" type="number" min="4000" max="10000" step="100">
-                </div>
+                <details class="settings-dropdown" data-settings-dropdown open>
+                  <summary>Averaging and models</summary>
+                  <div class="settings-dropdown-content">
+                    <div class="field setting-field">
+                      <div class="field-label-row"><label for="setting-smoothing">Weight smoothing period (days)</label><details class="setting-help"><summary aria-label="Explain weight smoothing">i</summary><p>Averages nearby weigh-ins to reduce daily water and digestion noise. Use 1 day for no smoothing.</p></details></div>
+                      <input id="setting-smoothing" type="number" min="1" max="90" step="1" inputmode="numeric">
+                    </div>
+                    <div class="field setting-field">
+                      <div class="field-label-row"><label for="setting-trend-window">Trend analysis window (days)</label><details class="setting-help"><summary aria-label="Explain trend window">i</summary><p>Controls how many recent days are used to estimate weight velocity and the current diet phase. Labels are Cut, Maintain, Bulk, Diet break and Deload. Deload is a low-confidence recovery-pattern guess because training load is not tracked.</p></details></div>
+                      <div class="field-action-row">
+                        <input id="setting-trend-window" type="number" min="7" max="730" step="1" inputmode="numeric">
+                        <button id="optimize-trend-window" class="secondary-button compact" type="button">Min volatility</button>
+                      </div>
+                    </div>
+                    <div class="field setting-field">
+                      <div class="field-label-row"><label for="setting-trend-confidence">Analysis quality panel</label><details class="setting-help"><summary aria-label="Explain analysis quality panel">i</summary><p>Shows maintenance-model readiness, measurement sufficiency and weight volatility together beside the chart.</p></details></div>
+                      <select id="setting-trend-confidence"><option value="on">Show combined quality panel</option><option value="off">Hide combined quality panel</option></select>
+                    </div>
+                    <div class="field setting-field">
+                      <div class="field-label-row"><label for="setting-maintenance-window">Maintenance estimation window (days)</label><details class="setting-help"><summary aria-label="Explain maintenance window">i</summary><p>Maintenance uses average logged kcal/day minus the weight-change slope times the kcal/kg setting. Missing calorie days lower coverage, so a week with only weight can make the estimate poor. The button picks the window with the best blend of calorie coverage, weight count, confidence and uncertainty.</p></details></div>
+                      <div class="field-action-row">
+                        <input id="setting-maintenance-window" type="number" min="7" max="730" step="1" inputmode="numeric">
+                        <button id="optimize-maintenance-window" class="secondary-button compact" type="button">Best quality</button>
+                      </div>
+                    </div>
+                    <div class="field setting-field">
+                      <div class="field-label-row"><label for="setting-prediction-days">Prediction horizon (days)</label><details class="setting-help"><summary aria-label="Explain prediction horizon">i</summary><p>Sets how far the weight trend is projected into the future. Longer forecasts are less certain.</p></details></div>
+                      <input id="setting-prediction-days" type="number" min="7" max="3650" step="1" inputmode="numeric">
+                    </div>
+                  </div>
+                </details>
+
+                <details class="settings-dropdown" data-settings-dropdown open>
+                  <summary>Charts and energy model</summary>
+                  <div class="settings-dropdown-content">
+                    <div class="field setting-field">
+                      <div class="field-label-row"><label for="setting-chart-start-date">Chart history starts on</label><details class="setting-help"><summary aria-label="Explain chart history">i</summary><p>Only measurements on or after this date appear in weight charts. Leave it empty to show all history.</p></details></div>
+                      <input id="setting-chart-start-date" type="date">
+                    </div>
+                    <div class="field setting-field">
+                      <div class="field-label-row"><label for="setting-chart-scale-mode">Weight chart scale</label><details class="setting-help"><summary aria-label="Explain chart scale">i</summary><p>Auto follows your visible data. Fixed keeps the same vertical range for easier visual comparison.</p></details></div>
+                      <select id="setting-chart-scale-mode"><option value="auto">Auto range</option><option value="fixed">Set range</option></select>
+                    </div>
+                    <div id="chart-fixed-range-fields" class="settings-inline-grid hidden">
+                      <label class="field"><span>Min weight (kg)</span><input id="setting-chart-weight-min" type="number" min="20" max="500" step="0.1" placeholder="60.0"></label>
+                      <label class="field"><span>Max weight (kg)</span><input id="setting-chart-weight-max" type="number" min="20" max="500" step="0.1" placeholder="90.0"></label>
+                    </div>
+                    <div class="field setting-field">
+                      <div class="field-label-row"><label for="setting-energy-density">Energy conversion estimate (kcal/kg)</label><details class="setting-help"><summary aria-label="Explain energy conversion">i</summary><p>Approximate energy associated with one kilogram of weight change. It affects maintenance and goal calculations.</p></details></div>
+                      <input id="setting-energy-density" type="number" min="4000" max="10000" step="100">
+                    </div>
+                  </div>
+                </details>
 
                 <p id="settings-message" class="form-message" aria-live="polite">Settings save automatically.</p>
               </form>

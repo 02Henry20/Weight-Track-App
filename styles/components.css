@@ -887,6 +887,20 @@ select:disabled {
   gap: 13px;
 }
 
+.settings-dropdown {
+  display: grid;
+  gap: 13px;
+}
+
+.settings-dropdown > summary {
+  display: none;
+}
+
+.settings-dropdown-content {
+  display: grid;
+  gap: 13px;
+}
+
 .settings-inline-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2100,4 +2114,3 @@ select:disabled {
 .goal-composition-target-tag[hidden] {
   display: none !important;
 }
-

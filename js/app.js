@@ -53,7 +53,7 @@ import {
   redrawOnResize
 } from "./charts.js";
 
-const APP_VERSION = "2.4.13";
+const APP_VERSION = "2.4.14";
 
 const VIEW_LABELS = {
   overview: ["TODAY'S SIGNAL", "Overview"],
@@ -101,6 +101,7 @@ let nutripilotWeeklyCandidates = [];
 let settingsAutosaveTimer = null;
 let settingsSaveSequence = 0;
 const SETTINGS_AUTOSAVE_DELAY_MS = 650;
+const MOBILE_SETTINGS_QUERY = "(max-width: 680px)";
 
 function setFormMessage(element, text, error = false) {
   element.textContent = text;
@@ -248,8 +249,17 @@ function navigateTo(view) {
   if (view === "log" && window.matchMedia("(max-width: 900px)").matches) {
     setLogHistoriesCollapsed(true);
   }
+  if (view === "settings") resetSettingsDropdowns();
   document.querySelector(".content-scroll")?.scrollTo({ top: 0, behavior: "smooth" });
   window.requestAnimationFrame(renderActiveCharts);
+}
+
+function resetSettingsDropdowns() {
+  const isMobile = window.matchMedia(MOBILE_SETTINGS_QUERY).matches;
+  document.querySelectorAll("[data-settings-dropdown]").forEach(dropdown => {
+    dropdown.open = !isMobile;
+  });
+  document.querySelectorAll(".setting-help[open]").forEach(details => details.removeAttribute("open"));
 }
 
 function setLogHistoriesCollapsed(collapsed) {
@@ -1094,7 +1104,8 @@ function renderGoals(analyses) {
   setText("#goal-predicted-date", goals.etaDate ? formatLongDate(goals.etaDate) : "Trend not aligned");
   setText("#goal-difference", goals.difference == null ? "—" : `${formatSigned(goals.difference, 1)} kg`);
   const compositionTargetTag = document.querySelector("#goal-composition-target-tag");
-  const targetWeightValue = Number(state.goals.targetWeight);
+  const hasTargetWeight = state.goals.targetWeight !== null && state.goals.targetWeight !== "";
+  const targetWeightValue = hasTargetWeight ? Number(state.goals.targetWeight) : NaN;
   if (compositionTargetTag) {
     compositionTargetTag.hidden = !Number.isFinite(targetWeightValue);
     compositionTargetTag.textContent = Number.isFinite(targetWeightValue) ? `Target ${targetWeightValue.toFixed(1)} kg` : "";
@@ -1472,6 +1483,9 @@ function bindEvents() {
     }
   });
   window.addEventListener("offline", scheduleRender);
+  window.matchMedia(MOBILE_SETTINGS_QUERY).addEventListener("change", () => {
+    if (activeView === "settings") resetSettingsDropdowns();
+  });
   bindSettingHelpDismissal();
   redrawOnResize(renderActiveCharts);
 }

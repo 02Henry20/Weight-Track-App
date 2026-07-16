@@ -577,12 +577,6 @@ export function drawBodyCompositionChart(canvas, bodyAnalysis, { targetBodyFat =
 }
 
 
-function numericMean(values) {
-  const valid = values.map(Number).filter(Number.isFinite);
-  if (!valid.length) return null;
-  return valid.reduce((sum, value) => sum + value, 0) / valid.length;
-}
-
 function drawNumericXAxis(context, area, minValue, maxValue, xScale, count = 5, suffix = "") {
   context.save();
   context.font = "11px system-ui, sans-serif";
@@ -615,21 +609,23 @@ function estimateCompositionAtWeight(baseline, weightKg) {
 
 export function drawGoalCompositionProjectionChart(canvas, bodyAnalysis, goals = {}) {
   const entries = bodyAnalysis?.entries ?? [];
-  const available = entries.length >= 1;
+  const current = bodyAnalysis?.current ?? entries.at(-1);
+  const available = Boolean(current);
   setChartAvailability(canvas, available);
   if (!available) return;
 
-  const recent = entries.slice(-Math.min(3, entries.length));
-  const latest = entries.at(-1);
   const baseline = {
-    weight: numericMean(recent.map(point => point.weight)),
-    fatMass: numericMean(recent.map(point => point.fatMass)),
-    leanMass: numericMean(recent.map(point => point.leanMass)),
-    bodyFat: numericMean(recent.map(point => point.bodyFat))
+    weight: Number(current.weight),
+    fatMass: Number(current.fatMass),
+    leanMass: Number(current.leanMass),
+    bodyFat: Number(current.bodyFat)
   };
   if (![baseline.weight, baseline.fatMass, baseline.leanMass, baseline.bodyFat].every(Number.isFinite)) return;
 
-  const targetWeight = Number(goals?.targetWeight);
+  const targetWeightRaw = goals?.targetWeight;
+  const targetWeight = targetWeightRaw === null || targetWeightRaw === undefined || targetWeightRaw === ""
+    ? NaN
+    : Number(targetWeightRaw);
   const targetPadding = Number.isFinite(targetWeight) ? Math.abs(targetWeight - baseline.weight) + 3 : 0;
   const span = Math.max(6, targetPadding, baseline.weight * 0.1);
   const minWeight = Math.max(30, Math.floor((baseline.weight - span) * 2) / 2);
@@ -645,7 +641,7 @@ export function drawGoalCompositionProjectionChart(canvas, bodyAnalysis, goals =
   const area = chartArea(width, height, { left: 52, right: 22, bottom: 50, top: 34 });
   const yValues = [
     ...points.map(point => point.bodyFat),
-    latest.bodyFat,
+    current.bodyFat,
     baseline.bodyFat
   ];
   const [yMinRaw, yMaxRaw] = valueExtent(yValues, 0.18, 1.2);
@@ -712,8 +708,8 @@ export function drawGoalCompositionProjectionChart(canvas, bodyAnalysis, goals =
     });
   }
 
-  const currentX = xScale(latest.weight);
-  const currentY = yScale(latest.bodyFat);
+  const currentX = xScale(current.weight);
+  const currentY = yScale(current.bodyFat);
   context.save();
   context.fillStyle = COLORS.blue;
   context.beginPath();
@@ -736,10 +732,10 @@ export function drawGoalCompositionProjectionChart(canvas, bodyAnalysis, goals =
   hitPoints.push({
     x: currentX,
     y: currentY,
-    point: { label: `Current ${latest.weight.toFixed(1)} kg`, value: latest.bodyFat },
+    point: { label: `Current ${current.weight.toFixed(1)} kg`, value: current.bodyFat },
     series: "Current measurement",
     color: COLORS.blue,
-    composition: latest
+    composition: current
   });
 
   attachTooltip(canvas, hitPoints, (value, point) => {

@@ -254,6 +254,10 @@
     margin-left: auto;
   }
 
+  .topbar > div:first-child {
+    display: none;
+  }
+
   .mobile-sync-pill {
     display: inline-flex;
     max-width: 126px;
@@ -331,6 +335,58 @@
   .settings-card {
     padding: 17px;
     border-radius: 20px;
+  }
+
+  .settings-card > .panel-heading {
+    display: none;
+  }
+
+  .settings-form {
+    gap: 10px;
+  }
+
+  .settings-dropdown {
+    border: 1px solid var(--line);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.025);
+    overflow: hidden;
+  }
+
+  .settings-dropdown > summary {
+    display: flex;
+    min-height: 52px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 14px;
+    color: var(--muted-strong);
+    cursor: pointer;
+    font-size: 0.86rem;
+    font-weight: 820;
+    list-style: none;
+  }
+
+  .settings-dropdown > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .settings-dropdown > summary::after {
+    color: var(--blue-bright);
+    content: "+";
+    font-size: 1.2rem;
+    line-height: 1;
+  }
+
+  .settings-dropdown[open] > summary {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .settings-dropdown[open] > summary::after {
+    content: "-";
+  }
+
+  .settings-dropdown-content {
+    padding: 14px;
   }
 
   .chart-wrap {

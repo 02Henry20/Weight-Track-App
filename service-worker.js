@@ -1,6 +1,11 @@
-const APP_CACHE = "calstat-app-v18";
+const APP_CACHE = "calstat-app-v19";
 const FIREBASE_CACHE = "calstat-firebase-modules-v1";
 const FIREBASE_VERSION = "12.15.0";
+const FIREBASE_SDK_MODULES = [
+  `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-app.js`,
+  `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-auth.js`,
+  `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-firestore.js`
+];
 
 const APP_SHELL = [
   "./",
@@ -22,9 +27,21 @@ const APP_SHELL = [
 
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(APP_CACHE).then(cache =>
-      cache.addAll(APP_SHELL.map(url => new Request(url, { cache: "reload" })))
-    )
+    (async () => {
+      const appCache = await caches.open(APP_CACHE);
+      await appCache.addAll(APP_SHELL.map(url => new Request(url, { cache: "reload" })));
+
+      const firebaseCache = await caches.open(FIREBASE_CACHE);
+      await Promise.all(FIREBASE_SDK_MODULES.map(async url => {
+        try {
+          await firebaseCache.add(new Request(url, { cache: "reload" }));
+        } catch (error) {
+          console.warn("Firebase SDK precache failed:", url, error);
+        }
+      }));
+
+      await self.skipWaiting();
+    })()
   );
 });
 
