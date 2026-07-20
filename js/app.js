@@ -53,7 +53,7 @@ import {
   redrawOnResize
 } from "./charts.js";
 
-const APP_VERSION = "2.4.14";
+const APP_VERSION = "2.4.15";
 
 const VIEW_LABELS = {
   overview: ["TODAY'S SIGNAL", "Overview"],
@@ -523,7 +523,13 @@ function renderNutriPilotWeeks() {
     title.textContent = formatWeekRange(week.start, week.end);
 
     const meta = document.createElement("small");
-    meta.textContent = `${week.activeDayCount}/${week.calendarDayCount} logged days · ${Math.round(week.totalKcal).toLocaleString()} kcal total`;
+    const loggedDays = week.activeDayCount > 0
+      ? `${week.activeDayCount}/${week.calendarDayCount} logged days`
+      : "Logged-day count unavailable";
+    const totalKcal = Number.isFinite(week.totalKcal)
+      ? ` · ${Math.round(week.totalKcal).toLocaleString()} kcal total`
+      : "";
+    meta.textContent = `${loggedDays}${totalKcal}`;
 
     copy.append(title, meta);
 

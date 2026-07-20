@@ -218,9 +218,12 @@ function hasCalorieEntryInWeek(startDate, endDate) {
 
 function normalizeNutriPilotWeeklyCache(document) {
   const data = document.data();
-  const start = typeof data.start === "string" && ISO_DATE_PATTERN.test(data.start) ? data.start : null;
-  const end = typeof data.end === "string" && ISO_DATE_PATTERN.test(data.end) ? data.end : null;
-  const totalKcal = Number(data.total?.kcal);
+  const idDates = document.id.match(/^week_(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})$/);
+  const start = idDates?.[1] ?? null;
+  const end = idDates?.[2] ?? null;
+  const storedAverageKcal = Number(data.averageKcalPerDay);
+  const storedMetricDayCount = Number(data.metricDayCount);
+  const storedTotalKcal = Number(data.total?.kcal);
   const activeDates = Array.isArray(data.activeDates)
     ? data.activeDates.filter(date => typeof date === "string" && ISO_DATE_PATTERN.test(date))
     : [];
@@ -228,25 +231,32 @@ function normalizeNutriPilotWeeklyCache(document) {
     ? data.dates.filter(date => typeof date === "string" && ISO_DATE_PATTERN.test(date))
     : [];
 
-  if (data.mode !== "week" || !document.id.startsWith("week_") || !start || !end || !Number.isFinite(totalKcal) || totalKcal <= 0) {
+  if (!idDates || !start || !end || start > end || data.dirty === true) {
     return null;
   }
 
-  const activeDayCount = activeDates.length;
+  const activeDayCount = Number.isFinite(storedMetricDayCount) && storedMetricDayCount > 0
+    ? Math.round(storedMetricDayCount)
+    : activeDates.length;
   const calendarDayCount = dates.length || Math.max(1, Number(data.dayCount) || 7);
-  if (activeDayCount <= 0 || data.dirty === true) return null;
+  const hasStoredAverage = Number.isFinite(storedAverageKcal) && storedAverageKcal > 0;
+  const hasLegacyTotal = Number.isFinite(storedTotalKcal) && storedTotalKcal > 0;
+  const averageKcal = hasStoredAverage
+    ? storedAverageKcal
+    : hasLegacyTotal && activeDayCount > 0
+      ? storedTotalKcal / activeDayCount
+      : null;
 
-  const averageKcal = totalKcal / Math.max(1, activeDayCount);
-  const calendarAverageKcal = totalKcal / Math.max(1, calendarDayCount);
+  if (!Number.isFinite(averageKcal) || averageKcal <= 0) return null;
 
   return {
     id: document.id,
     start,
     end,
     date: end,
-    totalKcal,
+    totalKcal: hasLegacyTotal ? storedTotalKcal : null,
     averageKcal,
-    calendarAverageKcal,
+    calendarAverageKcal: hasLegacyTotal ? storedTotalKcal / Math.max(1, calendarDayCount) : null,
     activeDayCount,
     calendarDayCount,
     sourceEntryCount: Number(data.sourceEntryCount) || 0,
